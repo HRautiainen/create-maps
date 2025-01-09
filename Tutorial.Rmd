@@ -15,9 +15,7 @@ editor_options:
 # library(pacman)
 # pacman::p_unload(pacman::p_loaded(), character.only = TRUE)
 # pacman::p_loaded()
-
-
-load(file = "Tutorial.RData")
+# load(file = "Tutorial.RData")
 
 ```
 
@@ -149,10 +147,7 @@ sweden.c <-   sweden.c %>% sf::st_as_sf(coords = c("x", "y"), crs = 3006)
 # AOI <-  input_vector %>%
 #   grep(pattern = "AOI", value = T) %>%
 #   sf::st_read()
-# 
 # st_crs(AOI)
-# 
-# 
 # # transform to 3006 
 # AOI <- st_transform(AOI, crs = 3006)
 # st_bbox(AOI)
@@ -767,93 +762,75 @@ plot(m)
 # library(ggpubr)
 
 
-### set sizes 
-# pg1_B <- ggplotGrob(m)
-# pg2_B <- ggplotGrob(m)
-# maxHeight = grid::unit.pmax(pg1_B$heights, pg2_B$heights)
-# pg1_B$heights <- as.list(maxHeight)
-# pg2_B$heights <- as.list(maxHeight)
-# maxWidth = grid::unit.pmax(pg1_B$widths, pg2_B$widths)
-# pg1_B$widths <- as.list(maxWidth)
-# pg2_B$widths <- as.list(maxWidth)
-# 
-# pg1_C <- ggplotGrob(m)
-# pg2_C <- ggplotGrob(m)
-# maxHeight = grid::unit.pmax(pg1_C$heights, pg2_C$heights)
-# pg1_C$heights <- as.list(maxHeight)
-# pg2_C$heights <- as.list(maxHeight)
-# 
-# maxWidth = grid::unit.pmax(pg1_C$widths, pg2_C$widths)
-# pg1_C$widths <- as.list(maxWidth)
-# pg2_C$widths <- as.list(maxWidth)
+
+fig <-ggarrange(
+
+# Figure A
+ggarrange(ggarrange(plot_map,
+                      labels = c("A"),
+                      # common.legend = TRUE, legend = "bottom",
+                      legend = FALSE,
+                      hjust = -1,
+                      vjust = 1.4),
 
 
-# fig <-ggarrange(
-#   
-# # Figure A 
-# ggarrange(ggarrange(plot_map, 
-#                       labels = c("A"),
-#                       # common.legend = TRUE, legend = "bottom",
-#                       legend = FALSE,
-#                       hjust = -1,
-#                       vjust = 1.4), 
-#           
-#           
-#           
-# # Figure B
-#          ggarrange(plot_map,
-#                       labels = c("B"),
-#                       # common.legend = TRUE, legend = "bottom",
-#                       legend = FALSE,
-#                       hjust = -1,
-#                       vjust = 1.4), 
-#                 ncol = 2,
-#                 align = "h",
-#                 common.legend = TRUE),
-# 
-#   
-# # Figure C
-#   ggarrange(ggarrange(plot_map, 
-#                       labels = c("C"),
-#                       # common.legend = TRUE, legend = "bottom",
-#                       legend = FALSE,
-#                       hjust = -1,
-#                       vjust = 1.4),
-#             
-#             
-#             # Figure D
-#             ggarrange(plot_map,
-#                       labels = c("D"),
-#                       # common.legend = TRUE, legend = "bottom",
-#                       legend = FALSE,
-#                       hjust = -1,
-#                       vjust = 1.4), 
-#             ncol = 2,
-#             align = "h",
-#             common.legend = FALSE),
-#   
-#   ncol = 1, nrow = 2,
-#   common.legend = TRUE)
-# 
-# 
-# fig2 <- annotate_figure(fig,
-#                         fig.lab.pos = c("top.left"),
-#                         top = text_grob("Figure 1", color = "Black", face = "bold", size = 22))
-#                               # top = text_grob("Visualizing len", color = "red", face = "bold", size = 14),
-#                               # bottom = text_grob("Data source: \n ToothGrowth data set", color = "blue",
-#                               #                    hjust = 1, x = 1, face = "italic", size = 10),
-#                               # left = text_grob("text", color = "black", size = 14, rot = 90, vjust = 1), 
-#                               # bottom = text_grob("text", color = "black", size = 14))
-# 
-# 
-# ggsave("output/GPS_data_ggplot.png", 
-#        plot = fig2, 
-#        width = 15, height = 15, 
-#          unit = "in",
-#   device = png,
-#   type = "cairo",
-#   bg = "white", 
-#   dpi = 600)
+
+# Figure B
+         ggarrange(plot_map,
+                      labels = c("B"),
+                      # common.legend = TRUE, legend = "bottom",
+                      legend = FALSE,
+                      hjust = -1,
+                      vjust = 1.4),
+                ncol = 2,
+                align = "h",
+                common.legend = TRUE),
+
+
+# Figure C
+  ggarrange(ggarrange(plot_map,
+                      labels = c("C"),
+                      # common.legend = TRUE, legend = "bottom",
+                      legend = FALSE,
+                      hjust = -1,
+                      vjust = 1.4),
+
+
+            # Figure D
+            ggarrange(plot_map,
+                      labels = c("D"),
+                      # common.legend = TRUE, legend = "bottom",
+                      legend = FALSE,
+                      hjust = -1,
+                      vjust = 1.4),
+            ncol = 2,
+            align = "h",
+            common.legend = FALSE),
+
+  ncol = 1, nrow = 2,
+  common.legend = TRUE)
+
+
+fig2 <- annotate_figure(fig,
+                        fig.lab.pos = c("top.left"),
+                        top = text_grob("Figure 1", color = "Black", face = "bold", size = 22))
+                              # top = text_grob("Visualizing len", color = "red", face = "bold", size = 14),
+                              # bottom = text_grob("Data source: \n ToothGrowth data set", color = "blue",
+                              #                    hjust = 1, x = 1, face = "italic", size = 10),
+                              # left = text_grob("text", color = "black", size = 14, rot = 90, vjust = 1),
+                              # bottom = text_grob("text", color = "black", size = 14))
+
+
+ggsave("output/GPS_data_ggplot.png",
+       plot = fig2,
+       width = 8, height = 6,
+         unit = "in",
+  device = png,
+  type = "cairo",
+  bg = "white",
+  dpi = 600)
+
+ggsave("output/GPS_data_ggplot_example.png", width = 8, height = 6, dpi = 400)
 
 # save.image(file = "Tutorial.RData")
   
