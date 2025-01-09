@@ -2,29 +2,860 @@
 title: "Creating maps in R"
 author: "Heidi Rautiainen"
 date: "2024-12-20"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
+# rm(list = ls(all = TRUE))
+# install.packages("pacman")
+# library(pacman)
+# pacman::p_unload(pacman::p_loaded(), character.only = TRUE)
+# pacman::p_loaded()
+
+
+load(file = "Tutorial.RData")
+
+```
+
+
+
+## Objectives
+* Become familiar with R packages for processing and simple visualization of vector and raster data 
+* Perform common data transformation operations
+* Create static maps (with ggplot2) and interactive maps (with mapview)
+
+## Contents
+* Explore vector dataset
+* Short about reference systems and transformations
+* Customize maps (ggplot2)
+* Explore raster dataset
+* Save your study area 
+
+Data used in this exercise: 
+* Downloaded using "geodata"-package (exercise 1)
+* "create-maps/input_data"
+
+Data availability:
+* using "rnaturalearth"-package. The "geodata"-package also provide open access data: GADM (https://gadm.org) country boarders, landcover data from  ESA WorldCover etc. 
+* raster and vector data downloaded from SLU server gis.slu.se/gisdata, and available from the GET download service at http://maps.slu.se. See GIS support at SLU for more information. 
+
+
+### Prerequisites and setup
+* Install packages
+* Set up exercise structure: input and output folders
+```{r packages, echo=T, include=FALSE}
+# setwd("~/.../GS_VMAS Data handling and illustrations/create-maps")
+### install packages
+# install.load::install_load("dplyr", "raster", "sf", "tidyverse", 
+#                             "maps", "terra")
 knitr::opts_chunk$set(echo = TRUE)
+
+
+# Load packages
+pcks <- list("dplyr", 
+             "raster", # used for raster data
+             "sf", 
+             "ggspatial",
+             "tidyverse")
+
+sapply(pcks, require, char = TRUE) 
+
+
+
+# input files ----
+# maps folder and files
+spatial_folder <- "input_data"
+
+# data to read
+input_vector <- list.files(spatial_folder,
+                          pattern = ".gpkg|.shp|.rds",
+                          full.names = T,
+                          recursive = T)
+
+# data to read
+input_raster <- list.files(spatial_folder,
+                          pattern = ".tif",
+                          full.names = T,
+                          recursive = T)
+
+
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
+## Exercise 1: Create study area map using "ggplot"
+All datasets are found in the "data"-folder. 
+
+Here, we use the package 'rnaturalearth' to download countries in a ESRI shapefile format. These are available for download here: 
+https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-admin-0-countries/
+
+# load vector data -------------------------------------------------------------
+```{r}
+
+# Download using 'rnaturalearth' package, or download from git -----------------
+# install additional packages for high resolution data
+# install.packages("rnaturalearthhires", repos = "https://ropensci.r-universe.dev")
+
+library(rnaturalearth)
+
+# # # shp of sweden -----
+# sweden <- ne_countries(scale = 10, country = "Sweden")
+# projection(sweden)
+# st_crs(sweden)$proj4string
+# class(sweden)
+# plot(sweden)
+# plot(sweden[,1])
+# 
+# #transform projection to SWEREF
+# sweden_sweref <- st_transform(sweden, crs = 3006) #  project(x, crs()) for raster
+# plot(sweden_sweref[,1])
+# class(sweden_sweref)
+# str(sweden_sweref)
+# st_crs(sweden_sweref)$proj4string
+# 
+# 
+# # # Save as ESRI shp and load data:
+# st_write(sweden_sweref, "input_data/vector/country/swe.shp")
+
+## load country boarders -----------
+sweden_sweref <-  input_vector %>%
+  grep(pattern = "swe", value = T) %>%
+  sf::st_read()
+
+
+# bounding box --------------------- 
+
+
+# Create a bounding box as an sf object for layers
+b_box <- c(xmin = 440432, ymin = 7179284, 
+           xmax = 857780, ymax =7444230)
+
+# Now intersect the full world's coastline with the bounding box 
+suppressWarnings({ 
+
+sweden.c <- st_crop(sweden_sweref, b_box)
+plot(sweden.c)
+}) 
+sweden.c <-   sweden.c %>% sf::st_as_sf(coords = c("x", "y"), crs = 3006)
+
+
+
+# ### add study area bbox --------------------------------------------------------
+# AOI <-  input_vector %>%
+#   grep(pattern = "AOI", value = T) %>%
+#   sf::st_read()
+# 
+# st_crs(AOI)
+# 
+# 
+# # transform to 3006 
+# AOI <- st_transform(AOI, crs = 3006)
+# st_bbox(AOI)
+# AOI <- st_as_sf(AOI)
+# st_crs(AOI)
+# plot(AOI)
+# extent(AOI)
+
+
+
+
+
+### water data -----------------------------------------------------------------
+
+lakes <-  input_vector %>%
+  grep(pattern = "lakes", value = T) %>%
+  sf::st_read()
+lakes <- st_transform(lakes, crs = 3006)
+st_crs(lakes)
+suppressWarnings({ 
+
+
+sf_use_s2(FALSE)
+lakes <- st_crop(lakes, sweden.c)
+class(lakes)
+plot(lakes)
+
+}) 
+st_bbox(sweden.c)
+
+
+
+
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+### add points of interest (cities)
+```{r}
+
+# Create points of interest (coordinates from google maps for demonstration)
+places <- data.frame(ID= c("Arjeplog", "Arvidsjaur", "Sorsele"),
+                     y = c(7328407.945, 7280856.153, 7270326.684),
+                     x = c(630040.101, 693262.414, 617477.638)) %>%
+  st_as_sf(coords = c("x", "y"),
+           crs=3006)
+st_crs(places)
+
+
 ```
 
+
+
+
+## make plot using ggplot ------------------------------------------------------
+```{r}
+library(ggspatial)
+ggplot() +
+  
+  
+    # plot sweden and lakes 
+    geom_sf(aes(geometry = sweden.c$geometry)) +
+  
+  
+    geom_sf(data = sweden.c, 
+          aes(geometry = sweden.c$geometry),
+          fill= "antiquewhite") +
+  
+  
+      geom_sf(data = lakes,
+              fill="lightblue") +
+  
+  
+     # # add AOI (not included here)
+     # geom_sf(data = AOI, 
+     #         fill= "transparent",  
+     #         linetype = "11", 
+     #         size = 1.5) +
+     # 
+  # add cities 
+  geom_sf(data = places) +
+  geom_sf_text(data = places, aes(label = ID), 
+               vjust=-0.5)+
+  
+  
+  # Add text on map
+  annotate(geom = "text", 
+             x = 484609, y = 7404230, 
+             label = "Norwegian Sea", 
+             fontface = "italic", 
+             color = "grey22", 
+           size = 4) +
+  
+  
+  # Add north arrow
+  annotation_north_arrow(location = "bl", 
+                       which_north = "true", 
+                       pad_x = unit(7.3, "in"), # side
+                       pad_y = unit(4.6, "in"), 
+                       style = north_arrow_fancy_orienteering) +
+  #add annotation scale
+  annotation_scale(location = "bl", 
+                     width_hint = 0.5) +
+  
+  
+  # keep new projection for ggplot
+  coord_sf(crs = st_crs(3006), 
+ datum = sf::st_crs(3006),             
+ expand = FALSE) +
+  
+  
+  # add grid lines 
+  theme(panel.grid.major = element_line(color = gray(.5), 
+                                        linetype = "dashed", 
+                                        linewidth  = 0.1), 
+        panel.background = element_rect(fill = "lightblue")) +
+    
+
+### for remving titles 
+# theme(axis.title.x = element_blank(), 
+#       axis.title.y = element_blank()) + 
+  
+  xlab("Longitude") + ylab("Latitude") 
+
+
+
+
+ggsave("output/study_area.png", width = 8, height = 6, dpi = 400)
+
+
+```
+
+
+
+
+
+
+
+
+# Exercise 2: Maps in R 
+```{r example maps, echo=FALSE}
+
+# projection to use
+crs_to_use <- "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs"
+
+```
+
+# Load background data  --------------------------------------------------------
+```{r}
+
+
+# raster data ----
+input_raster
+
+# # maps to ignore 
+# ignore <- c("nmd2018bas_generaliserad_v1_0")
+
+# maps to read
+maps_files_read <- grep(pattern = paste(ignore, collapse = "|"), 
+                        input_raster, value = T, invert = T)
+
+
+maps_files_read
+
+
+
+
+maps <- raster::stack(maps_files_read)
+# maps <- crop(maps, extent(AOI)) #if needed
+names(maps)
+
+
+names(maps) <- c("clear cuts", "elevation","distance to houses",
+                 "lichen abundance", "land cover class", 
+                 "distance to roads","slope", "terrain ruggedness index")
+
+elevation <- maps[[2]]
+
+
+
+# vector for home range ------- 
+HR_area <- input_vector %>% 
+  grep(pattern = "spatial_files_availability_PV_winter_2021_shorter_modified_new.shp", value = T) %>% 
+  sf::st_read() %>% 
+  dplyr::select(available = 1) %>% 
+  sf::st_transform(crs = crs_to_use)
+
+par(mfrow = c(1,1))
+plot(elevation)
+
+# # replacing NA's by zero
+# maps[[4]][is.na(maps[[4]][])] <- 0
+# head(maps, n=10)
+```
+
+
+
+### add animal  data ------
+```{r}
+
+reindeer_data <- readRDS("input_data/vector/animal_data/data_cleaned_PV.rds") %>%
+  # dplyr::as_tibble()  %>%
+  dplyr::select(Collar_ID, Object_ID, burst, id, year, x, y, Timestamp, Info)  %>%
+  subset(Timestamp >= as.POSIXct('2021-01-28 00:00', tz = "GMT") &
+           Timestamp <= as.POSIXct('2021-04-07 23:59', tz = "GMT")) %>%
+  filter(Info == "Control1"|Info == "Fed1") %>%
+    dplyr::rename(group = Info) %>%
+   dplyr::mutate(
+    group = case_when(
+      group == "Control1"  ~ "Control", 
+      group == "Fed1"  ~ "Fed"))
+
+str(reindeer_data)
+reindeer_data$group <- as.factor(reindeer_data$group)
+  
+  
+# visualize points on background maps -----
+
+fed_ids <- reindeer_data %>% filter(group=="Fed")
+ctrls <- reindeer_data %>% filter(group=="Control")
+
+move <- SpatialPoints(reindeer_data[, c("x", "y")], 
+                      proj4string = CRS("+proj=utm +zone=33 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
+move_fed <- SpatialPoints(fed_ids[, c("x", "y")], 
+                      proj4string = CRS("+proj=utm +zone=33 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
+
+move_ctrl <- SpatialPoints(ctrls[, c("x", "y")], 
+                      proj4string = CRS("+proj=utm +zone=33 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
+
+### subset for one ID 
+# id<- move %>% filter(Object_ID=="rt_PV_20_020") 
+# id_points <- SpatialPoints(id[, c("x_", "y_")], proj4string = CRS("+proj=utm +zone=33 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
+```
+
+
+
+# explore and select colors 
+```{r}
+
+
+# Overview map terrain colour
+over.col <- colorRampPalette(c("white", "black"))
+
+par(mfrow = c(1,2))
+
+plot(elevation, col=over.col(100))
+
+
+plot(elevation, 
+     col = gray.colors(100, 
+                       start = 0.3, 
+                       end = 0.9, 
+                       gamma = 2.2, 
+                       alpha = NULL))
+
+library(RColorBrewer)
+par(mfrow = c(1,1))
+
+
+display.brewer.all()
+cols <- brewer.pal(7, "Greys")
+pal <- colorRampPalette(cols[1:3])
+
+terrain.colors(255)
+
+```
+
+
+
+
+## prepare hillshade background map ---------------------------------------
+```{r}
+par(mfrow = c(2,2))
+
+# Create Hill shade
+slope <- terra::terrain(elevation, 
+                        "slope", 
+                        unit='radians')
+
+plot(slope)
+
+
+aspect <- terra::terrain(elevation, 
+                         "aspect", 
+                         unit='radians')
+
+plot(aspect)
+
+hillshade <- hillShade(slope, #shade for spatRaster
+              aspect, 
+              angle=45, 
+              direction=300,   
+              normalize = TRUE)
+
+plot(hillshade)
+
+
+
+# Terrain colour palette
+terrain.colors(255)
+
+
+# Plot hill shade and overlay DEM
+plot(hillshade, col=rev(over.col(50)), legend=FALSE)
+plot(elevation, col=adjustcolor(terrain.colors(100), 
+                             alpha=0.75),      
+     legend=FALSE, 
+     add=TRUE)
+```
+
+
+
+
+### save all together ---------------------------------------------------
+```{r}
+png("output/GPS_data.png", width = 30, height = 19, units = "cm", res = 400)
+par(mfrow=c(2,2), mar=c(0.1, 0.1, 3, 0.1))
+
+
+
+plot(hillshade, 
+     col=rev(over.col(50)), 
+          axes=FALSE,
+         legend=FALSE)
+plot(elevation, col=adjustcolor(terrain.colors(100), 
+                             alpha=0.5), legend=FALSE, add=T)
+     
+     
+title(main="A Plot fed inviduals",
+      line = 0.5,
+      cex.main=1.6,     
+      adj = 0)
+leg.txt <- c("Feeding group", "Control group")
+
+points(move_fed, pch = 19, cex = 0.5,
+       col = fed_ids$group)
+
+
+# legend("topright", leg.txt, 
+#        # inset = .01,
+#        pch = 16, col = rev(1:2),
+#        cex = 1.5, trace = TRUE)#
+# dev.off()
+
+
+#availbility 
+plot(hillshade, 
+     col=rev(over.col(50)), 
+          axes=FALSE,
+     legend=FALSE)
+plot(elevation, col=adjustcolor(terrain.colors(100), 
+                             alpha=0.5), legend=FALSE, add=T)
+     
+
+title(main="B Plot control individuals",
+      line = 0.5,
+      cex.main=1.6,     
+      
+      adj = 0)
+points(move_ctrl, pch = 19, cex = 0.5, 
+       col = ctrls$group)
+
+
+#random 
+plot(hillshade, 
+     col=rev(over.col(50)), 
+          axes=FALSE,
+     legend=FALSE)
+plot(elevation, col=adjustcolor(terrain.colors(100), 
+                             alpha=0.5), legend=FALSE,add=T)
+     
+
+title(main="C Plot all individuals",
+      line = 0.5,
+      cex.main=1.6,     
+      adj = 0)
+
+points(move, pch = 19, cex = 0.5, 
+       col = reindeer_data$group)
+
+
+# all 
+
+plot(hillshade, 
+     col=rev(over.col(50)), 
+          axes=FALSE,
+     legend=FALSE)
+plot(elevation, col=adjustcolor(terrain.colors(100), 
+                             alpha=0.5), legend=FALSE, add=T)
+     
+
+title(main="D Plot home range",
+      line = 0.5,
+      cex.main=1.6,     
+      adj = 0)
+points(move, pch = 19, cex = 0.5, 
+       col = reindeer_data$group)
+
+plot(HR_area,   col = NA,
+     border = 1,add=T)
+
+
+
+dev.off()
+
+```
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+### save all together as ggplot ------------------------------------------
+Some more packages required.. 
+```{r}
+
+library(terra)
+library(ggnewscale)
+library(tidyterra)
+library(ggblend)
+
+
+# lakes2 <-  input_vector %>%
+#   grep(pattern = "lakes", value = T) %>%
+#   sf::st_read()
+# lakes2 <- st_transform(lakes2, crs = crs(elevation))
+# sf_use_s2(FALSE)
+# lakes2 <- st_crop(lakes2, elevation)
+# plot(lakes2)
+
+
+
+#convert the raster to points for plotting
+hillshade.p <- rasterToPoints(hillshade)
+elevation.p <- rasterToPoints(elevation)
+
+#Make the points a dataframe for ggplot
+hillshade.df <- data.frame(hillshade.p)
+elevation.df <- data.frame(elevation.p)
+
+
+#Make appropriate column headings
+names(hillshade.df)[3] <- "hillshade"
+names(elevation.df)[3] <- "dem"
+
+
+## make animal positions df
+move_fed <- move_fed%>%
+  st_as_sf(coords = c("x", "y"),
+           crs=elevation)
+move_fed <- st_transform(move_fed, crs = crs(elevation))
+move_fed2 <- st_crop(move_fed, elevation)
+
+move_ctrl <- move_ctrl%>%
+  st_as_sf(coords = c("x", "y"),
+           crs=elevation)
+move_ctrl <- st_transform(move_ctrl, crs = crs(elevation))
+move_ctrl2 <- st_crop(move_ctrl, elevation)
+
+
+move <- move%>%
+  st_as_sf(coords = c("x", "y"),
+           crs=elevation)
+move <- st_transform(move, crs = crs(elevation))
+move2 <- st_crop(move, elevation)
+
+# map simple hillshade -------------------- 
+
+ggplot() +
+  geom_raster(
+    data = hillshade.df,
+    aes(x, y, fill = hillshade),
+    show.legend = FALSE
+  ) +
+  scale_fill_distiller(palette = "Greys") +
+  new_scale_fill() +
+  geom_raster(
+    data = elevation.df,
+    aes(x, y, fill = dem),
+    alpha = .7
+  ) +
+  scale_fill_hypso_tint_c(breaks = c(
+    180, 250, 500, 1000,
+    1500, 2000, 2500, 3000, 3500
+  )) +
+  
+  # add animal data 
+  geom_sf(data = move_fed2, colour="red") + 
+  geom_sf(data = move_ctrl2, colour="black") + 
+
+  # doesn't work with lakes
+  # geom_sf( 
+  #   data = lakes,
+  #   fill = "#c6dbef", colour = NA
+  # ) +
+  guides(fill = guide_colorsteps(
+    barwidth = 20,
+    barheight = .5,
+    title.position = "right"
+  )) +
+  labs(fill = "m") +
+  coord_sf() +
+  theme_void() +
+  theme(legend.position = "bottom")
+
+
+# Multidirectional shadows ----------
+slope <- rast(slope)
+aspect <- rast(aspect)
+
+# pass multiple directions to shade()
+hillmulti <- map(c(270, 15, 60, 330), 
+                 function(dir) {
+  shade(slope, 
+            aspect,
+            angle = 45,
+            direction = dir,
+            normalize = TRUE)
+                   }
+  )
+
+
+# create a multidimensional raster and reduce it by summing up
+hillmulti <- rast(hillmulti) |> sum()
+
+# multidirectional
+plot(hillmulti, col = grey(1:100 / 100))
+plot(hillshade, col = grey(1:100 / 100))
+
+
+
+# map multidirectional hillshade -------------------- 
+hillmulti.df <- as.data.frame(hillmulti, xy = TRUE)
+
+  
+# map
+plot_map <- ggplot() +
+  geom_raster(
+    data = hillmulti.df,
+    aes(x, y, fill = sum),
+    show.legend = FALSE
+  ) +
+  scale_fill_distiller(palette = "Greys") +
+  new_scale_fill() +
+  geom_raster(
+    data = elevation.df,
+    aes(x, y, fill = dem),
+    alpha = .7
+  ) +
+  
+  scale_fill_hypso_tint_c(breaks = c(
+    180, 250, 500, 1000,
+    1500, 2000, 2500, 3000, 3500)) +
+  
+  # geom_sf(
+  #   data = suiz_lakes,
+  #   fill = "#c6dbef", colour = NA
+  # ) +
+  
+  guides(fill = guide_colorsteps(
+    barwidth = 20,
+    barheight = .5,
+    title.position = "right"
+  )) +
+  labs(fill = "m") +
+  coord_sf() +
+  theme_void() +
+  theme(legend.position = "bottom")
+
+
+# map
+m <- ggplot() +
+  list(
+    geom_raster(
+      data = hillmulti.df,
+      aes(x, y, fill = sum),
+      show.legend = FALSE
+    ),
+    scale_fill_distiller(palette = "Greys"),
+    new_scale_fill(),
+    geom_raster(
+      data = elevation.df,
+      aes(x, y, fill = dem),
+      alpha = .7
+    ),
+    scale_fill_hypso_tint_c(breaks = c(
+    180, 250, 500, 1000,
+    1500, 2000
+    ))
+  ) |> blend("multiply") +
+  # geom_sf(
+  #   data = suiz_lakes,
+  #   fill = "#c6dbef", colour = NA
+  # ) +
+  guides(fill = guide_colorsteps(
+    barwidth = 20,
+    barheight = .5,
+    title.position = "right"
+  )) +
+  labs(fill = "m") +
+  coord_sf() +
+  theme_void() +
+  theme(legend.position = "bottom")
+
+ggsave("output/hillshade_blend.png", m,
+  width = 10,
+  height = 8,
+  unit = "in",
+  device = png,
+  type = "cairo",
+  bg = "white"
+)
+
+plot(m)
+# library(ggpubr)
+
+
+### set sizes 
+# pg1_B <- ggplotGrob(m)
+# pg2_B <- ggplotGrob(m)
+# maxHeight = grid::unit.pmax(pg1_B$heights, pg2_B$heights)
+# pg1_B$heights <- as.list(maxHeight)
+# pg2_B$heights <- as.list(maxHeight)
+# maxWidth = grid::unit.pmax(pg1_B$widths, pg2_B$widths)
+# pg1_B$widths <- as.list(maxWidth)
+# pg2_B$widths <- as.list(maxWidth)
+# 
+# pg1_C <- ggplotGrob(m)
+# pg2_C <- ggplotGrob(m)
+# maxHeight = grid::unit.pmax(pg1_C$heights, pg2_C$heights)
+# pg1_C$heights <- as.list(maxHeight)
+# pg2_C$heights <- as.list(maxHeight)
+# 
+# maxWidth = grid::unit.pmax(pg1_C$widths, pg2_C$widths)
+# pg1_C$widths <- as.list(maxWidth)
+# pg2_C$widths <- as.list(maxWidth)
+
+
+# fig <-ggarrange(
+#   
+# # Figure A 
+# ggarrange(ggarrange(plot_map, 
+#                       labels = c("A"),
+#                       # common.legend = TRUE, legend = "bottom",
+#                       legend = FALSE,
+#                       hjust = -1,
+#                       vjust = 1.4), 
+#           
+#           
+#           
+# # Figure B
+#          ggarrange(plot_map,
+#                       labels = c("B"),
+#                       # common.legend = TRUE, legend = "bottom",
+#                       legend = FALSE,
+#                       hjust = -1,
+#                       vjust = 1.4), 
+#                 ncol = 2,
+#                 align = "h",
+#                 common.legend = TRUE),
+# 
+#   
+# # Figure C
+#   ggarrange(ggarrange(plot_map, 
+#                       labels = c("C"),
+#                       # common.legend = TRUE, legend = "bottom",
+#                       legend = FALSE,
+#                       hjust = -1,
+#                       vjust = 1.4),
+#             
+#             
+#             # Figure D
+#             ggarrange(plot_map,
+#                       labels = c("D"),
+#                       # common.legend = TRUE, legend = "bottom",
+#                       legend = FALSE,
+#                       hjust = -1,
+#                       vjust = 1.4), 
+#             ncol = 2,
+#             align = "h",
+#             common.legend = FALSE),
+#   
+#   ncol = 1, nrow = 2,
+#   common.legend = TRUE)
+# 
+# 
+# fig2 <- annotate_figure(fig,
+#                         fig.lab.pos = c("top.left"),
+#                         top = text_grob("Figure 1", color = "Black", face = "bold", size = 22))
+#                               # top = text_grob("Visualizing len", color = "red", face = "bold", size = 14),
+#                               # bottom = text_grob("Data source: \n ToothGrowth data set", color = "blue",
+#                               #                    hjust = 1, x = 1, face = "italic", size = 10),
+#                               # left = text_grob("text", color = "black", size = 14, rot = 90, vjust = 1), 
+#                               # bottom = text_grob("text", color = "black", size = 14))
+# 
+# 
+# ggsave("output/GPS_data_ggplot.png", 
+#        plot = fig2, 
+#        width = 15, height = 15, 
+#          unit = "in",
+#   device = png,
+#   type = "cairo",
+#   bg = "white", 
+#   dpi = 600)
+
+# save.image(file = "Tutorial.RData")
+  
+```
+
