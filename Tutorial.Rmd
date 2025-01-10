@@ -56,6 +56,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Load packages
 pcks <- list("dplyr", 
              "raster", # used for raster data
+             "terra", # used for raster data
              "sf", 
              "ggspatial",
              "tidyverse")
@@ -75,7 +76,7 @@ input_vector <- list.files(spatial_folder,
                           recursive = T)
 
 # data to read
-input_raster <- list.files(spatial_folder,
+maps_files_read <- list.files(spatial_folder,
                           pattern = ".tif",
                           full.names = T,
                           recursive = T)
@@ -165,13 +166,16 @@ sweden.c <-   sweden.c %>% sf::st_as_sf(coords = c("x", "y"), crs = 3006)
 lakes <-  input_vector %>%
   grep(pattern = "lakes", value = T) %>%
   sf::st_read()
-lakes <- st_transform(lakes, crs = 3006)
+
 st_crs(lakes)
+
+lakes <- st_transform(lakes, crs = 3006) # Transform or convert coordinates of simple feature (sf)
 suppressWarnings({ 
 
 
 sf_use_s2(FALSE)
-lakes <- st_crop(lakes, sweden.c)
+lakes <- st_crop(lakes, sweden.c) # crop an sf object to a specific rectangle (based on extent of "sweden.c"-shp)
+
 class(lakes)
 plot(lakes)
 
@@ -296,22 +300,12 @@ crs_to_use <- "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs"
 ```
 
 # Load background data  --------------------------------------------------------
+Now let's start by loading the maps using the "raster"-package (another option: "terra"-package using rast()-function)
 ```{r}
 
 
 # raster data ----
-input_raster
-
-# # maps to ignore 
-# ignore <- c("nmd2018bas_generaliserad_v1_0")
-
-# maps to read
-maps_files_read <- grep(pattern = paste(ignore, collapse = "|"), 
-                        input_raster, value = T, invert = T)
-
-
 maps_files_read
-
 
 
 
@@ -336,7 +330,6 @@ HR_area <- input_vector %>%
   sf::st_transform(crs = crs_to_use)
 
 par(mfrow = c(1,1))
-plot(elevation)
 
 # # replacing NA's by zero
 # maps[[4]][is.na(maps[[4]][])] <- 0
@@ -346,38 +339,37 @@ plot(elevation)
 
 
 ### add animal  data ------
+Load prepared reindeer data 
 ```{r}
 
-reindeer_data <- readRDS("input_data/vector/animal_data/data_cleaned_PV.rds") %>%
-  # dplyr::as_tibble()  %>%
-  dplyr::select(Collar_ID, Object_ID, burst, id, year, x, y, Timestamp, Info)  %>%
-  subset(Timestamp >= as.POSIXct('2021-01-28 00:00', tz = "GMT") &
-           Timestamp <= as.POSIXct('2021-04-07 23:59', tz = "GMT")) %>%
-  filter(Info == "Control1"|Info == "Fed1") %>%
-    dplyr::rename(group = Info) %>%
-   dplyr::mutate(
-    group = case_when(
-      group == "Control1"  ~ "Control", 
-      group == "Fed1"  ~ "Fed"))
+reindeer_data <- readRDS("input_data/vector/animal_data/reindeer_data.rds") %>%
+   dplyr::select(Collar_ID,  id, year, x_, y_, t_, group) 
 
-str(reindeer_data)
-reindeer_data$group <- as.factor(reindeer_data$group)
-  
-  
+reindeer_data$group <- as.factor(reindeer_data$group) # needed for grouping colors
+
+
 # visualize points on background maps -----
 
 fed_ids <- reindeer_data %>% filter(group=="Fed")
 ctrls <- reindeer_data %>% filter(group=="Control")
-
-move <- SpatialPoints(reindeer_data[, c("x", "y")], 
+move <- SpatialPoints(reindeer_data[, c("x_", "y_")], 
                       proj4string = CRS("+proj=utm +zone=33 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
-move_fed <- SpatialPoints(fed_ids[, c("x", "y")], 
+plot(move)
+# coordinates(reindeer_data) <- ~lon+lat
+# proj4string(reindeer_data) <- CRS(proj4string(oceans))
+coordinates(move)
+proj4string(move)
+
+
+move_fed <- SpatialPoints(fed_ids[, c("x_", "y_")], 
                       proj4string = CRS("+proj=utm +zone=33 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
 
-move_ctrl <- SpatialPoints(ctrls[, c("x", "y")], 
+move_ctrl <- SpatialPoints(ctrls[, c("x_", "y_")], 
                       proj4string = CRS("+proj=utm +zone=33 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
+# plot(move_fed)
 
-### subset for one ID 
+
+### subset for one ID -----
 # id<- move %>% filter(Object_ID=="rt_PV_20_020") 
 # id_points <- SpatialPoints(id[, c("x_", "y_")], proj4string = CRS("+proj=utm +zone=33 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
 ```
@@ -436,7 +428,7 @@ aspect <- terra::terrain(elevation,
 
 plot(aspect)
 
-hillshade <- hillShade(slope, #shade for spatRaster
+hillshade <- hillShade(slope, #shade() for spatRaster
               aspect, 
               angle=45, 
               direction=300,   
@@ -566,16 +558,20 @@ library(ggnewscale)
 library(tidyterra)
 library(ggblend)
 
-
+## not lakes in study area
 # lakes2 <-  input_vector %>%
 #   grep(pattern = "lakes", value = T) %>%
 #   sf::st_read()
-# lakes2 <- st_transform(lakes2, crs = crs(elevation))
+# st_crs(lakes2)
+# 
+# lakes2 <- st_transform(lakes2, crs = st_crs(move)) 
 # sf_use_s2(FALSE)
-# lakes2 <- st_crop(lakes2, elevation)
-# plot(lakes2)
+# lakes2 <- st_crop(lakes2, 
+#                   xmin = 715694, ymin = 7310002, 
+#                   xmax = 740824, ymax = 7324832) 
 
 
+extent(elevation)
 
 #convert the raster to points for plotting
 hillshade.p <- rasterToPoints(hillshade)
@@ -591,25 +587,13 @@ names(hillshade.df)[3] <- "hillshade"
 names(elevation.df)[3] <- "dem"
 
 
-## make animal positions df
-move_fed <- move_fed%>%
-  st_as_sf(coords = c("x", "y"),
-           crs=elevation)
-move_fed <- st_transform(move_fed, crs = crs(elevation))
-move_fed2 <- st_crop(move_fed, elevation)
 
-move_ctrl <- move_ctrl%>%
-  st_as_sf(coords = c("x", "y"),
-           crs=elevation)
-move_ctrl <- st_transform(move_ctrl, crs = crs(elevation))
-move_ctrl2 <- st_crop(move_ctrl, elevation)
+class(move)
+move.sf <- st_as_sf(move)
+move_fed.sf <- st_as_sf(move_fed)
+move_ctrl.sf <- st_as_sf(move_ctrl)
 
 
-move <- move%>%
-  st_as_sf(coords = c("x", "y"),
-           crs=elevation)
-move <- st_transform(move, crs = crs(elevation))
-move2 <- st_crop(move, elevation)
 
 # map simple hillshade -------------------- 
 
@@ -632,14 +616,20 @@ ggplot() +
   )) +
   
   # add animal data 
-  geom_sf(data = move_fed2, colour="red") + 
-  geom_sf(data = move_ctrl2, colour="black") + 
-
-  # doesn't work with lakes
-  # geom_sf( 
-  #   data = lakes,
+  geom_sf(data = move_fed.sf, 
+          colour="#B53737", 
+          size = 1) + 
+  geom_sf(data = move_ctrl.sf, 
+          colour="black",  size = 1)+
+  
+  
+  # ### no lakes in the area 
+  # geom_sf(
+  #   data = lakes2,
   #   fill = "#c6dbef", colour = NA
   # ) +
+  # 
+  
   guides(fill = guide_colorsteps(
     barwidth = 20,
     barheight = .5,
@@ -652,14 +642,15 @@ ggplot() +
 
 
 # Multidirectional shadows ----------
-slope <- rast(slope)
-aspect <- rast(aspect)
+slope.sr <- rast(slope) # make it spatr 
+aspect.sr <- rast(aspect) # make it spatr
+
 
 # pass multiple directions to shade()
 hillmulti <- map(c(270, 15, 60, 330), 
                  function(dir) {
-  shade(slope, 
-            aspect,
+  shade(slope.sr, 
+            aspect.sr,
             angle = 45,
             direction = dir,
             normalize = TRUE)
@@ -668,7 +659,7 @@ hillmulti <- map(c(270, 15, 60, 330),
 
 
 # create a multidimensional raster and reduce it by summing up
-hillmulti <- rast(hillmulti) |> sum()
+hillmulti <- rast(hillmulti) |> sum() 
 
 # multidirectional
 plot(hillmulti, col = grey(1:100 / 100))
@@ -732,13 +723,12 @@ m <- ggplot() +
     ),
     scale_fill_hypso_tint_c(breaks = c(
     180, 250, 500, 1000,
-    1500, 2000
+    1500, 2000, 2500, 3000, 3500
     ))
   ) |> blend("multiply") +
-  # geom_sf(
-  #   data = suiz_lakes,
-  #   fill = "#c6dbef", colour = NA
-  # ) +
+  
+  
+
   guides(fill = guide_colorsteps(
     barwidth = 20,
     barheight = .5,
@@ -830,7 +820,7 @@ ggsave("output/GPS_data_ggplot.png",
   bg = "white",
   dpi = 600)
 
-ggsave("output/GPS_data_ggplot_example.png", width = 8, height = 6, dpi = 400)
+ggsave("output/GPS_data_ggplot_example_multiplot.png", width = 8, height = 6, dpi = 400)
 
 # save.image(file = "Tutorial.RData")
   
