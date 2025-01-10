@@ -49,15 +49,18 @@ Data availability:
 # setwd("~/.../GS_VMAS Data handling and illustrations/create-maps")
 ### install packages
 # install.load::install_load("dplyr", "raster", "sf", "tidyverse", 
-#                             "maps", "terra")
-knitr::opts_chunk$set(echo = TRUE)
+#                             "maps", "terra", "ggspatial")
+knitr::opts_chunk$set(warning = TRUE, # show warnings
+                      message = TRUE, # show messages
+                      error = TRUE, # do not interrupt generation in case of errors,
+                      echo = TRUE)
 
 
 # Load packages
 pcks <- list("dplyr", 
              "raster", # used for raster data
-             "terra", # used for raster data
-             "sf", 
+             "terra", # used for raster data 
+             "sf", # used for handling sppatial data (e.g. setting coordinate ref system)
              "ggspatial",
              "tidyverse")
 
@@ -93,71 +96,80 @@ All datasets are found in the "data"-folder.
 Here, we use the package 'rnaturalearth' to download countries in a ESRI shapefile format. These are available for download here: 
 https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-admin-0-countries/
 
+
+Coordinate reference systems (CRS)
+CRS provide a standardized way of describing locations to describe geographic data.
+The CRS that is chosen depends on when the data was collected, the geographic extent of the data, 
+the purpose of the data, etc.
+
+In R, when data with different CRS are combined, it is important to transform them to a common CRS so they
+align with one another. This is similar to making sure that units are the same.
+
+Setting CRS to SWEREF99 (Sweden). CRS can be referenced by its 
+1) EPSG code, CRS("+init=epsg:3006") (see http://www.epsg-registry.org/ and http://spatialreference.org/) or by 
+2) proj4spring; "+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+
+There are two general options: 
+1) unprojected (a.k.a. Geographic): Latitude/Longitude for referencing location on the ellipsoid Earth (wgs84), and
+2) projected: Easting/Northing for referencing location on 2D representations of Earth (the creation of maps) e.g., SWEREF99
+
+More reading: https://www.nceas.ucsb.edu/sites/default/files/2020-04/OverviewCoordinateReferenceSystems.pdf
+
+
 # load vector data -------------------------------------------------------------
 ```{r}
 
 # Download using 'rnaturalearth' package, or download from git -----------------
 # install additional packages for high resolution data
 # install.packages("rnaturalearthhires", repos = "https://ropensci.r-universe.dev")
-
-library(rnaturalearth)
-
-# # # shp of sweden -----
-# sweden <- ne_countries(scale = 10, country = "Sweden")
-# projection(sweden)
-# st_crs(sweden)$proj4string
-# class(sweden)
-# plot(sweden)
-# plot(sweden[,1])
+# 
+# library(rnaturalearth)
+# 
+# # # # shp of sweden (available in input_data/vector/country/swe.shp) -----
+# swe_no <- ne_countries(scale = 10, country = c("Sweden", "Norway"))
+# 
+# # Check projection 
+# sf::st_crs(swe_no)$proj4string #  unprojected 
+# 
+# class(swe_no)
+# plot(swe_no)
+# plot(swe_no[,1])
 # 
 # #transform projection to SWEREF
-# sweden_sweref <- st_transform(sweden, crs = 3006) #  project(x, crs()) for raster
-# plot(sweden_sweref[,1])
-# class(sweden_sweref)
-# str(sweden_sweref)
-# st_crs(sweden_sweref)$proj4string
+# swe_no_sweref <- sf::st_transform(swe_no, crs = CRS("+init=epsg:3006")) # Transform or convert coordinates of simple feature (sf)
+# # can be set simply by "crs=3006". project(x, crs()) for raster
+# 
+# 
+# plot(swe_no_sweref[,1])
+# class(swe_no_sweref)
+# str(swe_no_sweref)
+# st_crs(swe_no_sweref)$proj4string
 # 
 # 
 # # # Save as ESRI shp and load data:
-# st_write(sweden_sweref, "input_data/vector/country/swe.shp")
+# st_write(swe_no_sweref, "input_data/vector/country/swe_no.shp")
 
 ## load country boarders -----------
-sweden_sweref <-  input_vector %>%
-  grep(pattern = "swe", value = T) %>%
-  sf::st_read()
+swe_no_sweref <-  input_vector %>%
+  grep(pattern = "swe_no", value = T) %>%
+  sf::st_read() %>% 
+  st_as_sf()
 
 
-# bounding box --------------------- 
+st_crs(swe_no_sweref)$proj4string
 
 
-# Create a bounding box as an sf object for layers
-b_box <- c(xmin = 440432, ymin = 7179284, 
+# Create a bounding box as an sf object for layers ---------------------------- 
+b_box <- c(xmin = 350432, ymin = 7179284, 
            xmax = 857780, ymax =7444230)
 
 # Now intersect the full world's coastline with the bounding box 
 suppressWarnings({ 
 
-sweden.c <- st_crop(sweden_sweref, b_box)
+sweden.c <- st_crop(swe_no_sweref, b_box)
+
 plot(sweden.c)
 }) 
-sweden.c <-   sweden.c %>% sf::st_as_sf(coords = c("x", "y"), crs = 3006)
-
-
-
-# ### add study area bbox --------------------------------------------------------
-# AOI <-  input_vector %>%
-#   grep(pattern = "AOI", value = T) %>%
-#   sf::st_read()
-# st_crs(AOI)
-# # transform to 3006 
-# AOI <- st_transform(AOI, crs = 3006)
-# st_bbox(AOI)
-# AOI <- st_as_sf(AOI)
-# st_crs(AOI)
-# plot(AOI)
-# extent(AOI)
-
-
 
 
 
@@ -167,20 +179,21 @@ lakes <-  input_vector %>%
   grep(pattern = "lakes", value = T) %>%
   sf::st_read()
 
+class(lakes)
 st_crs(lakes)
 
 lakes <- st_transform(lakes, crs = 3006) # Transform or convert coordinates of simple feature (sf)
+
 suppressWarnings({ 
 
 
-sf_use_s2(FALSE)
-lakes <- st_crop(lakes, sweden.c) # crop an sf object to a specific rectangle (based on extent of "sweden.c"-shp)
+# sf_use_s2(FALSE) # if errors occur 
+lakes <- st_crop(lakes, sweden.c) # crop an sf object to a specific rectangle (here based on extent of "sweden.c"-shp)
 
 class(lakes)
 plot(lakes)
 
 }) 
-st_bbox(sweden.c)
 
 
 
@@ -193,13 +206,16 @@ st_bbox(sweden.c)
 ```{r}
 
 # Create points of interest (coordinates from google maps for demonstration)
+
+# create xy points with labels
+# data.frame with four different column one for each variable
 places <- data.frame(ID= c("Arjeplog", "Arvidsjaur", "Sorsele"),
                      y = c(7328407.945, 7280856.153, 7270326.684),
                      x = c(630040.101, 693262.414, 617477.638)) %>%
-  st_as_sf(coords = c("x", "y"),
-           crs=3006)
-st_crs(places)
-
+  st_as_sf(coords = c("x", "y"),                                               # create sf object 
+           crs=st_crs(sweden.c))                                               # set same crs as for sweden.c     
+class(places)
+st_crs(places) # check projection 
 
 ```
 
@@ -209,48 +225,58 @@ st_crs(places)
 ## make plot using ggplot ------------------------------------------------------
 ```{r}
 library(ggspatial)
+
+
 ggplot() +
   
   
     # plot sweden and lakes 
-    geom_sf(aes(geometry = sweden.c$geometry)) +
+    geom_sf(aes(geometry = sweden.c$geometry)) + # geom_sf() for vector data 
   
-  
-    geom_sf(data = sweden.c, 
+    geom_sf(data = sweden.c,
           aes(geometry = sweden.c$geometry),
-          fill= "antiquewhite") +
-  
+          fill= "antiquewhite")+
+
+
   
       geom_sf(data = lakes,
               fill="lightblue") +
   
+
+
+  # layer_spatial(data=elevation) +
   
-     # # add AOI (not included here)
-     # geom_sf(data = AOI, 
-     #         fill= "transparent",  
-     #         linetype = "11", 
-     #         size = 1.5) +
-     # 
   # add cities 
   geom_sf(data = places) +
-  geom_sf_text(data = places, aes(label = ID), 
-               vjust=-0.5)+
   
+  # add city names 
+  geom_sf_text(data = places, aes(label = ID),
+               vjust=-0.5)+
+
+
+
   
   # Add text on map
   annotate(geom = "text", 
              x = 484609, y = 7404230, 
-             label = "Norwegian Sea", 
+             label = "Norway", 
              fontface = "italic", 
-             color = "grey22", 
-           size = 4) +
+             color = "darkgray", 
+           size = 6) +
   
+  
+    annotate(geom = "text", 
+             x = 784609, y = 7404230, 
+             label = "Sweden", 
+             fontface = "italic", 
+             color = "darkgray", 
+           size = 6) +
   
   # Add north arrow
   annotation_north_arrow(location = "bl", 
                        which_north = "true", 
-                       pad_x = unit(7.3, "in"), # side
-                       pad_y = unit(4.6, "in"), 
+                       pad_x = unit(0.5, "cm"), # horizontal align
+                       pad_y = unit(8.5, "cm"), # vertical align
                        style = north_arrow_fancy_orienteering) +
   #add annotation scale
   annotation_scale(location = "bl", 
@@ -267,14 +293,14 @@ ggplot() +
   theme(panel.grid.major = element_line(color = gray(.5), 
                                         linetype = "dashed", 
                                         linewidth  = 0.1), 
-        panel.background = element_rect(fill = "lightblue")) +
+        panel.background = element_rect(fill = "lightblue")) 
     
 
-### for remving titles 
+### for removing titles 
 # theme(axis.title.x = element_blank(), 
 #       axis.title.y = element_blank()) + 
   
-  xlab("Longitude") + ylab("Latitude") 
+  # xlab("Longitude") + ylab("Latitude") 
 
 
 
@@ -285,8 +311,34 @@ ggsave("output/study_area.png", width = 8, height = 6, dpi = 400)
 ```
 
 
+## Exercise 1: Create a polygon and add to map 
+```{r ignore, echo=FALSE}
+
+# Create polygon for study area with following extent and add to the map ---
+# 
+#    xmin    ymin    xmax    ymax 
+#  603379 7260836  740500 7352059 
 
 
+
+# ######### Solution: 
+# 
+# df.box <- data.frame(x = c(min = 715694, max = 740824), 
+#                      y = c(max = 7310002, max =7324832))
+# 
+# AOI  <- df.box %>% 
+#   st_as_sf(coords = c("x", "y"), 
+#            crs = st_crs(sweden.c)) %>% 
+#   st_bbox() %>% 
+#   st_as_sfc()
+# 
+# 
+#      # add AOI to ggplot: 
+#      geom_sf(data = AOI,
+#              fill= "transparent",
+#              linetype = "11",
+#              color="red") +
+```
 
 
 
@@ -294,8 +346,10 @@ ggsave("output/study_area.png", width = 8, height = 6, dpi = 400)
 # Exercise 2: Maps in R 
 ```{r example maps, echo=FALSE}
 
-# projection to use
-crs_to_use <- "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs"
+# projection to use: here by using proj4string instead of ESPG code
+crs_to_use <- "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs" #proj4string 
+
+# crs_to_use <- CRS("+init=epsg:3006") #ESPG 
 
 ```
 
@@ -307,10 +361,10 @@ Now let's start by loading the maps using the "raster"-package (another option: 
 # raster data ----
 maps_files_read
 
-
-
 maps <- raster::stack(maps_files_read)
-# maps <- crop(maps, extent(AOI)) #if needed
+# maps <- crop(maps, extent(AOI)) #when cropping is needed (not needed here)
+
+
 names(maps)
 
 
@@ -319,27 +373,26 @@ names(maps) <- c("clear cuts", "elevation","distance to houses",
                  "distance to roads","slope", "terrain ruggedness index")
 
 elevation <- maps[[2]]
-
+sf::st_crs(elevation)$proj4string
 
 
 # vector for home range ------- 
 HR_area <- input_vector %>% 
   grep(pattern = "spatial_files_availability_PV_winter_2021_shorter_modified_new.shp", value = T) %>% 
   sf::st_read() %>% 
-  dplyr::select(available = 1) %>% 
-  sf::st_transform(crs = crs_to_use)
+  sf::st_transform(crs = crs_to_use) # set CRS 
+sf::st_crs(HR_area)$proj4string
 
 par(mfrow = c(1,1))
 
-# # replacing NA's by zero
-# maps[[4]][is.na(maps[[4]][])] <- 0
-# head(maps, n=10)
 ```
 
 
 
 ### add animal  data ------
 Load prepared reindeer data 
+
+
 ```{r}
 
 reindeer_data <- readRDS("input_data/vector/animal_data/reindeer_data.rds") %>%
@@ -348,25 +401,25 @@ reindeer_data <- readRDS("input_data/vector/animal_data/reindeer_data.rds") %>%
 reindeer_data$group <- as.factor(reindeer_data$group) # needed for grouping colors
 
 
-# visualize points on background maps -----
+# visualize points on background maps ------------------------------------------
 
+# group individuals 
 fed_ids <- reindeer_data %>% filter(group=="Fed")
 ctrls <- reindeer_data %>% filter(group=="Control")
+
+
+#create spatial points 
 move <- SpatialPoints(reindeer_data[, c("x_", "y_")], 
                       proj4string = CRS("+proj=utm +zone=33 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
-plot(move)
-# coordinates(reindeer_data) <- ~lon+lat
-# proj4string(reindeer_data) <- CRS(proj4string(oceans))
-coordinates(move)
-proj4string(move)
-
 
 move_fed <- SpatialPoints(fed_ids[, c("x_", "y_")], 
                       proj4string = CRS("+proj=utm +zone=33 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
 
 move_ctrl <- SpatialPoints(ctrls[, c("x_", "y_")], 
                       proj4string = CRS("+proj=utm +zone=33 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
-# plot(move_fed)
+
+coordinates(move)
+proj4string(move)
 
 
 ### subset for one ID -----
@@ -551,7 +604,7 @@ Note that the `echo = FALSE` parameter was added to the code chunk to prevent pr
 
 ### save all together as ggplot ------------------------------------------
 Some more packages required.. 
-```{r}
+```{r error=TRUE}
 
 library(terra)
 library(ggnewscale)
