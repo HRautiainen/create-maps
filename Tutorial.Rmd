@@ -147,11 +147,22 @@ More reading: https://www.nceas.ucsb.edu/sites/default/files/2020-04/OverviewCoo
 ```{r echo=T}
 
 ## load country boarders -----------
-swe_no_sweref <-  input_vector %>%
-  grep(pattern = "swe_no", value = T) %>%
-  sf::st_read() %>% 
-  st_as_sf()
 
+
+#' downladed and saved from rnaturalearth (above)
+swe_no_sweref <-  input_vector %>% 
+
+  # value = T: return vector containing the matching elements
+  grep(pattern = "swe_no", value = T) %>% 
+
+  # read ESRI Shapefile object 
+  sf::st_read() %>% 
+
+  #convert geometry object into an sf object
+  st_as_sf() 
+
+
+# check coordinate system 
 st_crs(swe_no_sweref)$proj4string
 
 # Create a bounding box as an sf object for layers ----
@@ -164,11 +175,15 @@ sweden.c <- st_crop(swe_no_sweref, b_box)
 plot(sweden.c)
 }) 
 
+class(sweden.c)
 ### water data ----
 
+# import lakes
 lakes <-  input_vector %>%
   grep(pattern = "lakes", value = T) %>%
-  sf::st_read()
+  sf::st_read() %>%
+  st_as_sf() 
+
 
 class(lakes)
 st_crs(lakes)
@@ -185,6 +200,7 @@ class(lakes)
 plot(lakes)
 }) 
 
+
 ```
 
 
@@ -192,7 +208,7 @@ plot(lakes)
 Create xy points with labels. Here creating sf-object and setting the crs. 
 ```{r echo=T}
 
-# Create points of interest (coordinates from google maps for demonstration)
+# Create points of interest (coordinates from QGIS or google maps for demonstration)
 places <- data.frame(ID= c("Arjeplog", "Arvidsjaur", "Sorsele"),
                      y = c(7328407.945, 7280856.153, 7270326.684),
                      x = c(630040.101, 693262.414, 617477.638)) %>%
@@ -206,7 +222,6 @@ class(places)
 
 ## Make plot using ggplot
 ```{r}
-
 
 library(ggspatial)
 
@@ -250,8 +265,10 @@ ggplot() +
   # Add north arrow
   annotation_north_arrow(location = "bl", 
                        which_north = "true", 
+                         height = unit(1, "cm"),
+  width = unit(1, "cm"),
                        pad_x = unit(0.5, "cm"), # horizontal align
-                       pad_y = unit(8.5, "cm"), # vertical align
+                       pad_y = unit(8, "cm"), # vertical align
                        style = north_arrow_fancy_orienteering) +
   #add annotation scale
   annotation_scale(location = "bl", 
@@ -260,8 +277,8 @@ ggplot() +
   
   # keep new projection for ggplot
   coord_sf(crs = st_crs(3006), 
- datum = sf::st_crs(3006),             
- expand = FALSE) +
+  datum = sf::st_crs(3006),             
+  expand = FALSE) +
   
   # add grid lines 
   theme(panel.grid.major = element_line(color = gray(.5), 
@@ -319,8 +336,8 @@ ESPG: CRS("+init=epsg:3006")
 proj4string: "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs" 
 ```{r example maps}
 
-# projection to use
-crs_to_use <- "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs" #proj4string 
+# projection to use as proj4string 
+crs_to_use <- "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs" 
 
 ```
 
@@ -330,6 +347,7 @@ Now let's start by loading the maps using the "raster"-package (another option: 
 
 # raster data ----
 maps_files_read
+
 
 maps <- raster::stack(maps_files_read)
 # maps <- crop(maps, extent(AOI)) #when cropping is needed (not needed here)
@@ -686,6 +704,7 @@ ggplot() +
   theme(legend.position = "bottom") + 
   labs(title="Simple hillshade using ggplot2")+
   theme(plot.title = element_text(hjust = 0.5))
+
 ```
 \pagebreak
 
@@ -779,47 +798,61 @@ plot_map
 # Example of creating multiplots ggplots
 ```{r echo = FALSE}
 
-# # Example using blending 
-# m <- ggplot() +
-#   list(
-#     geom_raster(
-#       data = hillmulti.df,
-#       aes(x, y, fill = sum),
-#       show.legend = FALSE
-#     ),
-#     scale_fill_distiller(palette = "Greys"),
-#     new_scale_fill(),
-#     geom_raster(
-#       data = elevation.df,
-#       aes(x, y, fill = dem),
-#       alpha = .7
-#     ),
-#     scale_fill_hypso_tint_c(breaks = c(
-#     180, 250, 500, 1000,
-#     1500, 2000, 2500, 3000, 3500
-#     ))
-#   ) |> blend("multiply") +
-# 
-#   guides(fill = guide_colorsteps(
-#     barwidth = 20,
-#     barheight = .5,
-#     title.position = "right"
-#   )) +
-#   labs(fill = "m") +
-#   coord_sf() +
-#   theme_void() +
-#   theme(legend.position = "bottom")
-# 
-# ggsave("output/hillshade_blend.png", m,
-#   width = 10,
-#   height = 8,
-#   unit = "in",
-#   device = png,
-#   type = "cairo",
-#   bg = "white"
-# )
-# 
-# plot(m)
+# Example using blending
+m <- ggplot() +
+  list(
+    geom_raster(
+      data = hillmulti.df,
+      aes(x, y, fill = sum),
+      show.legend = FALSE
+    ),
+    scale_fill_distiller(palette = "Greys"),
+    new_scale_fill(),
+    geom_raster(
+      data = elevation.df,
+      aes(x, y, fill = dem),
+      alpha = .7
+    ),
+    scale_fill_hypso_tint_c(breaks = c(
+    180, 250, 500, 1000,
+    1500, 2000, 2500, 3000, 3500
+    ))
+  ) |> blend("multiply") +
+
+
+  guides(fill = guide_colorsteps(
+    barwidth = 20,
+    barheight = .5,
+    title.position = "right"
+  )) +
+  
+      # add animal data
+  geom_sf(data = move_fed.sf,
+          colour="#B53737",
+          size = 1) +
+  geom_sf(data = move_ctrl.sf,
+          colour="black",  size = 1)+
+  
+  
+  labs(fill = "m") +
+  coord_sf() +
+  theme_void() +
+  theme(legend.position = "bottom")#+
+    # labs(title="Multidirectional hillshade blended")+
+    # theme(plot.title = element_text(hjust = 0.5))+
+    # theme(plot.title = element_text(size = 20))
+
+
+ggsave("output/hillshade_blend2.png", m,
+  width = 10,
+  height = 8,
+  unit = "in",
+  device = png,
+  type = "cairo",
+  bg = "white"
+)
+
+plot(m)
 
 
 library(ggpubr)
