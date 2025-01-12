@@ -774,10 +774,6 @@ plot_map <- ggplot() +
   geom_sf(data = move_ctrl.sf,
           colour="black",  size = 1)+
 
-  # geom_sf(
-  #   data = suiz_lakes,
-  #   fill = "#c6dbef", colour = NA
-  # ) +
 
   guides(fill = guide_colorsteps(
     barwidth = 20,
