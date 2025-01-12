@@ -3,11 +3,11 @@ GS-VMAS course, Data handling and illustrations
 
 
 # set up
-# setwd("~/.../create-maps")
+##### setwd("~/.../create-maps")
 
-## install packages
-# install.load::install_load("dplyr", "raster", "sf", "tidyverse", 
-#                             "maps", "terra", "ggspatial")
+#### install packages
+##### install.load::install_load("dplyr", "raster", "sf", "tidyverse", 
+#####                             "maps", "terra", "ggspatial")
 
 # Load packages
 pcks <- list("dplyr", 
