@@ -9,11 +9,11 @@ install.load::install_load("dplyr", "raster", "sf", "tidyverse",
                            "maps", "terra", "ggspatial")
 
 #### Load packages
-pcks <- list("dplyr", 
-             "raster", 
-             "terra",  
+pcks <- list("dplyr",      
+             "raster",      
+             "terra",       
              "sf",     
-             "ggspatial",
+             "ggspatial",     
              "tidyverse")
 
 sapply(pcks, require, char = TRUE) 
