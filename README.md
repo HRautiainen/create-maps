@@ -7,10 +7,9 @@ GS-VMAS course, Data handling and illustrations
 * Create static maps (with ggplot2) and interactive maps (with mapview)
 
 ## Contents
-* Explore vector dataset
-* Ereference systems and transformations
+* Explore vector and raster datasets
+* Reference systems and transformations
 * Customize maps (ggplot2)
-* Explore raster dataset
 * Save your map 
 
 ### Data used for demo
