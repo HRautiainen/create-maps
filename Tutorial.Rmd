@@ -21,26 +21,6 @@ editor_options:
 
 
 
-## Objectives
-* Become familiar with R packages for processing and simple visualization of vector and raster data 
-* Perform common data transformation operations
-* Create static maps (with ggplot2) and interactive maps (with mapview)
-
-## Contents
-* Explore vector dataset
-* Ereference systems and transformations
-* Customize maps (ggplot2)
-* Explore raster dataset
-* Save your map 
-
-Data used in this exercise: 
-* Downloaded using "geodata"-package (exercise 1)
-* "create-maps/input_data"
-
-### Data availability
-* using "rnaturalearth"-package. The "geodata"-package also provide open access data: GADM (https://gadm.org) country boarders, landcover data from  ESA WorldCover etc. 
-* raster and vector data downloaded from SLU server gis.slu.se/gisdata, and available from the GET download service at http://maps.slu.se. See GIS support at SLU for more information. 
-
 ### Prerequisites and setup
 * Install packages
 * Set up exercise structure: input and output folders
