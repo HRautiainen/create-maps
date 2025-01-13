@@ -398,6 +398,12 @@ move_ctrl <- SpatialPoints(ctrls[, c("x_", "y_")],
 # coordinates(move)
 # proj4string(move)
 
+library(mapview)
+
+  mapid %>%
+  mapview()
+  
+  
 ### subset for one ID
 id<- reindeer_data %>% filter(Collar_ID=="FIT_421952")
 id_points <- SpatialPoints(id[, c("x_", "y_")], proj4string = CRS("+proj=utm +zone=33 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))

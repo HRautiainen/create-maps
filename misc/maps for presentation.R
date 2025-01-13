@@ -164,3 +164,10 @@ ocean <- basemap(limits = c(-30, 30, 50, 80),
 ocean
 
 
+swe <- ggplot2::map_data("world2", region ="sweden")
+unique(swe$subregion)
+head(swe)
+plot(swe)
+
+library(tmap)
+
