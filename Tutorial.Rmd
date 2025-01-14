@@ -15,19 +15,18 @@ editor_options:
 # library(pacman)
 # pacman::p_unload(pacman::p_loaded(), character.only = TRUE)
 # pacman::p_loaded()
-# load(file = "Tutorial.RData")
 
 ```
 
-
-
 ### Prerequisites and setup
-* Install packages
-* Set up exercise structure: input and output folders
+
+-   Install packages
+-   Set up exercise structure: input and output folders
 
 \pagebreak
+
 ```{r packages, echo=T, include=FALSE}
-# setwd("~/.../GS_VMAS Data handling and illustrations/create-maps")
+# setwd("~/.../create-maps")
 ### install packages
 # install.load::install_load("dplyr", "raster", "sf", "tidyverse", 
 #                             "maps", "terra", "ggspatial")
@@ -38,10 +37,10 @@ knitr::opts_chunk$set(warning = TRUE, # show warnings
 
 # Load packages
 pcks <- list("dplyr", 
-             "raster", # used for raster data
-             "terra", # used for raster data 
-             "sf", # used for handling sppatial data (e.g. setting coordinate ref system)
-             "ggspatial",
+             "raster",    # used for raster data
+             "terra",     # used for raster data 
+             "sf",        # used for handling sppatial data 
+             "ggspatial", # spatial for ggplot2 
              "tidyverse")
 
 sapply(pcks, require, char = TRUE) 
@@ -66,32 +65,34 @@ maps_files_read <- list.files(spatial_folder,
 
 ```
 
-
-
-
 # Exercise 1: Create study area map using "ggplot"
-All datasets are found in the "data"-folder. 
 
-Here, we use the package 'rnaturalearth' to download countries in a ESRI shapefile format. These are available for download here: 
-https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-admin-0-countries/
+All datasets are found in the "data"-folder.
 
+Here, we use the package 'rnaturalearth' to download countries in a ESRI shapefile format. These are available for download here: <https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-admin-0-countries/>
 
-**Coordinate reference systems (CRS)**
-CRS provide a standardized way of describing locations to describe geographic data.
-The CRS that is chosen depends on when the data was collected, the purpose of the data, etc. It is necessary to transform vector and raster data to a common CRS when data with different CRS are combined.
+**Coordinate reference systems (CRS)**\
+CRS provide a standardized way of describing locations to describe geographic data. The CRS that is chosen depends on when the data was collected, the purpose of the data, etc. It is necessary to transform vector and raster data to a common CRS when data with different CRS are combined.
 
-Setting CRS to SWEREF99 (Sweden). CRS can be referenced by its: 
-1) EPSG code, CRS("+init=epsg:3006") (see http://www.epsg-registry.org/ and http://spatialreference.org/) or by 
-2) proj4spring; "+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+***Setting CRS to SWEREF99 (Sweden). CRS can be referenced by its:***
 
-There are two general options:
-1) unprojected (a.k.a. Geographic): Latitude/Longitude for referencing location on the ellipsoid Earth (wgs84), and<br 
-2) projected: Easting/Northing for referencing location on 2D representations of Earth (the creation of maps) e.g., SWEREF99. 
+1.  EPSG code, CRS("+init=epsg:3006") (see <http://www.epsg-registry.org/> and <http://spatialreference.org/>) or by
 
-More reading: https://www.nceas.ucsb.edu/sites/default/files/2020-04/OverviewCoordinateReferenceSystems.pdf
+2.  proj4spring; "+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
 
+***There are two general options:***
+
+1.  unprojected (a.k.a. Geographic): Latitude/Longitude for referencing location on the ellipsoid Earth (wgs84), and
+
+2.  projected: Easting/Northing for referencing location on 2D representations of Earth (the creation of maps) e.g., SWEREF99.
+
+More reading:\
+<https://www.nceas.ucsb.edu/sites/default/files/2020-04/OverviewCoordinateReferenceSystems.pdf>
 
 ## Load vector data
+
+How to download using "rnaturalearth" and save the shp locally
+
 ```{r echo=F, include=FALSE}
 
 # Download using 'rnaturalearth' package, or download from git -----------------
@@ -123,6 +124,8 @@ More reading: https://www.nceas.ucsb.edu/sites/default/files/2020-04/OverviewCoo
 # # # Save as ESRI shp and load data:
 # st_write(swe_no_sweref, "input_data/vector/country/swe_no.shp")
 ```
+
+I will open the saved .shp for the exercise:
 
 ```{r echo=T}
 
@@ -183,9 +186,10 @@ plot(lakes)
 
 ```
 
-
 ### Add points of interest (cities)
-Create xy points with labels. Here creating sf-object and setting the crs. 
+
+Create xy points with labels. Here creating sf-object and setting the crs.
+
 ```{r echo=T}
 
 # Create points of interest (coordinates from QGIS or google maps for demonstration)
@@ -199,8 +203,8 @@ class(places)
 
 ```
 
-
 ## Make plot using ggplot
+
 ```{r}
 
 library(ggspatial)
@@ -210,12 +214,11 @@ ggplot() +
     # plot sweden and lakes 
     geom_sf(aes(geometry = sweden.c$geometry)) + # geom_sf() for vector data 
   
-    geom_sf(data = sweden.c,
+    geom_sf(data = sweden.c,                     # plot sweden border vector
           aes(geometry = sweden.c$geometry),
           fill= "antiquewhite")+
 
-
-      geom_sf(data = lakes,
+      geom_sf(data = lakes,                      # plot lakes vector
               fill="lightblue") +
 
   # layer_spatial(data=elevation) +
@@ -266,16 +269,16 @@ ggplot() +
                                         linewidth  = 0.1), 
         panel.background = element_rect(fill = "lightblue")) 
     
-### for removing or adding titles 
-# theme(axis.title.x = element_blank(), 
+### examplefor removing or adding titles 
+# theme(axis.title.x = element_blank(),    # remove 
 #       axis.title.y = element_blank()) + 
-  # xlab("Longitude") + ylab("Latitude") 
+  # xlab("Longitude") + ylab("Latitude")   # add
 
 ggsave("output/study_area.png", width = 8, height = 6, dpi = 400)
 ```
 
-
 Optional: Create a polygon and add to map
+
 ```{r ignore, echo=F}
 #############################################################################
 ########      Optional: Create a polygon and add to map      ################
@@ -305,15 +308,17 @@ Optional: Create a polygon and add to map
 #              linetype = "11",
 #              color="red") +
 ```
+
 \pagebreak
 
+# Exercise 2: Maps in R
 
+Pre-define crs using ESPG-code or proj4string by:
 
+-   ESPG: CRS("+init=epsg:3006")
 
-# Exercise 2: Maps in R 
-Pre-define crs using ESPG-code or proj4string by
-ESPG: CRS("+init=epsg:3006") 
-proj4string: "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs" 
+-   proj4string: "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs"
+
 ```{r example maps}
 
 # projection to use as proj4string 
@@ -322,7 +327,11 @@ crs_to_use <- "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs"
 ```
 
 ## Load background data
-Now let's start by loading the maps using the "raster"-package (another option: "terra"-package using rast()-function)
+
+Now let's start by loading the maps using the "raster"-package.
+
+Another option: "terra"-package using rast()-function)
+
 ```{r echo=FALSE}
 
 # raster data ----
@@ -363,10 +372,9 @@ par(mfrow = c(1,1))
 
 ```
 
-
-
 ## Add animal data (GPS points)
-Load prepared reindeer data 
+
+Load prepared reindeer data
 
 ```{r echo=F}
 
@@ -412,9 +420,8 @@ plot(id_points,
           main="Animal position data (one ID)")
 ```
 
+# Explore and select colors
 
-
-# Explore and select colors 
 ```{r echo=F}
 
 # Overview map terrain colour
@@ -451,9 +458,9 @@ plot(elevation,
      main="Elevation")
 ```
 
-
 ## Prepare hillshade background map
-Calculate slope and aspect from elevation (dem) 
+
+Calculate slope and aspect from elevation (dem)
 
 ```{r echo=F}
 
@@ -498,10 +505,8 @@ plot(elevation,
      add=TRUE)
 ```
 
-
-
-
 ## Plot and save all together
+
 ```{r echo=F}
 # png("output/GPS_data.png", width = 30, height = 19, units = "cm", res = 400)
 par(mfrow=c(2,2), mar=c(0.1, 0.1, 3, 0.1))
@@ -592,13 +597,14 @@ plot(HR_area,
 # dev.off()
 
 ```
+
 \pagebreak
 
+# Saving it as ggplot
 
-
-# Saving it as ggplot 
 Some more packages required..
-Credits to: https://dominicroye.github.io/blog/hillshade-effect/index.html
+
+Credits to: <https://dominicroye.github.io/blog/hillshade-effect/index.html>
 
 ```{r echo = FALSE}
 ##```{r echo = FALSE, eval = FALSE}
@@ -692,9 +698,12 @@ ggplot() +
   theme(plot.title = element_text(hjust = 0.5))
 
 ```
+
 \pagebreak
 
-# More examples 
+# More examples
+
+## Multidimensional hillshade
 ```{r echo = FALSE}
 
 # Multidirectional shadows ----------
@@ -777,8 +786,9 @@ plot_map <- ggplot() +
 plot_map
 ```
 
-# Example of creating multiplots ggplots
-```{r echo = FALSE}
+## Example of creating multiplots ggplots and to save the maps
+
+```{r echo = FALSE, include =FALSE}
 
 # Example using blending
 m <- ggplot() +
@@ -893,18 +903,17 @@ fig2 <- annotate_figure(fig,
                               # bottom = text_grob("text", color = "black", size = 14))
 
 
-ggsave("output/GPS_data_ggplot.png",
-       plot = fig2,
-       width = 8, height = 6,
-         unit = "in",
-  device = png,
-  type = "cairo",
-  bg = "white",
-  dpi = 600)
-
-ggsave("output/GPS_data_ggplot_example_multiplot.png", width = 8, height = 6, dpi = 400)
+# ggsave("output/GPS_data_ggplot.png",
+#        plot = fig2,
+#        width = 8, height = 6,
+#          unit = "in",
+#   device = png,
+#   type = "cairo",
+#   bg = "white",
+#   dpi = 600)
+# 
+# ggsave("output/GPS_data_ggplot_example_multiplot.png", width = 8, height = 6, dpi = 400)
 
 # save.image(file = "Tutorial.RData")
 
 ```
-
