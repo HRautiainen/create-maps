@@ -24,12 +24,20 @@ GS-VMAS course, Data handling and illustrations
 
 #### install and load packages
 ```{r packages, echo=T, include=FALSE}
-install.load::install_load("dplyr", "raster", "sf", "tidyverse", 
-                           "maps", "terra", "ggspatial")
 
-#### Load packages
+#### load; install missing packages
+install.load::install_load("dplyr",
+                           "raster",
+                           "ggplot2",
+                           "terra",
+                           "sf",
+                           "ggspatial",
+                           "tidyverse")
+
+
+#### or load packages
 pcks <- list("dplyr",         
-             "raster", <br><br># used for raster data        
+             "raster", # used for raster data        
              "terra",  # used for raster data         
              "sf",     # used for handling spatial vector data         
              "ggspatial",        
