@@ -1,6 +1,87 @@
 ### maps for presentations
 
 
+# WORLD MAPS
+
+# Load packages
+pcks <- list("dplyr", 
+             "raster", # used for raster data
+             "terra", # used for raster data 
+             "sf", # used for handling sppatial data (e.g. setting coordinate ref system)
+             "ggspatial", # for creating maps in ggplot 
+             "tidyverse")
+
+sapply(pcks, require, char = TRUE) 
+library(rnaturalearth)
+
+
+## SLIDE 1
+world <- ne_countries(scale = 10)
+# country = c("Sweden"))
+# Check projection
+sf::st_crs(world)$proj4string #  unprojected
+# world <-  st_transform(world, crs ="+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+
+world1 <-  st_transform(world, crs ="+proj=laea +x_0=0 + y_0=0 +lon_0=0 +lat_0=0")
+world2 <-  st_transform(world, crs ="+proj=laea +x_0=0 + y_0=0 +lon_0=-74 +lat_0=40")
+plot(world2)
+ggplot() +
+  
+  # plot the world
+  geom_sf(data = world1,
+          aes(geometry = world1$geometry),
+          fill= "antiquewhite")+
+  
+  # add grid lines 
+  theme(panel.grid.major = element_line(color = gray(.5), 
+                                        linetype = "dashed", 
+                                        linewidth  = 0.1), 
+        panel.background = element_rect(fill = "white")) 
+
+ggsave("misc/worldmap1.png", width = 8, height = 6, dpi = 400)
+
+
+# plot the world
+ggplot() +
+  
+geom_sf(data = world2,
+        aes(geometry = world2$geometry),
+        fill= "antiquewhite")+
+  
+  # add grid lines 
+  theme(panel.grid.major = element_line(color = gray(.5), 
+                                        linetype = "dashed", 
+                                        linewidth  = 0.1), 
+        panel.background = element_rect(fill = "white")) 
+
+ggsave("misc/worldmap2.png", width = 8, height = 6, dpi = 400)
+
+
+
+
+
+
+## plot it 
+
+library(ggspatial)
+
+ggplot() +
+  
+  # plot sweden and lakes 
+  geom_sf(aes(geometry = world$geometry)) + # geom_sf() for vector data 
+  geom_sf(data = world,
+          aes(geometry = world$geometry),
+          fill= "antiquewhite")+
+  
+  # add grid lines 
+  theme(panel.grid.major = element_line(color = gray(.5), 
+                                        linetype = "dashed", 
+                                        linewidth  = 0.1), 
+        panel.background = element_rect(fill = "white")) 
+
+
+ggsave("output/figx.png", width = 8, height = 6, dpi = 400)
+
 ### Make maps in R 
 
 library(sf)
@@ -43,54 +124,12 @@ geom_sf(data = rivers110,
 
 ggsave("uppsala_roads.png", width = 8, height = 6, dpi = 400)
 
-# WORLD MAPS
-
-# Load packages
-pcks <- list("dplyr", 
-             "raster", # used for raster data
-             "terra", # used for raster data 
-             "sf", # used for handling sppatial data (e.g. setting coordinate ref system)
-             "ggspatial", # for creating maps in ggplot 
-             "tidyverse")
-
-sapply(pcks, require, char = TRUE) 
-library(rnaturalearth)
 
 
 
-world <- ne_countries(scale = 10)
-                       # country = c("Sweden"))
-# Check projection
-sf::st_crs(world)$proj4string #  unprojected
-# world <-  st_transform(world, crs ="+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
-
-world <-  st_transform(world, crs ="+proj=laea +x_0=0 + y_0=0 +lon_0=0 +lat_0=0")
-
-
-
-
-
-
-## plot it 
-
-library(ggspatial)
-
-ggplot() +
-  
-  # plot sweden and lakes 
-  geom_sf(aes(geometry = world$geometry)) + # geom_sf() for vector data 
-  geom_sf(data = world,
-          aes(geometry = world$geometry),
-          fill= "antiquewhite")+
-
-  # add grid lines 
-  theme(panel.grid.major = element_line(color = gray(.5), 
-                                        linetype = "dashed", 
-                                        linewidth  = 0.1), 
-        panel.background = element_rect(fill = "white")) 
-
-
-ggsave("output/figx.png", width = 8, height = 6, dpi = 400)
+library(mapview)
+  roads %>%
+  mapview() 
 
 #### RAST VECT
 

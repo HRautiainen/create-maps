@@ -18,18 +18,19 @@ editor_options:
 
 ```
 
-### Prerequisites and setup
-
--   Install packages
--   Set up exercise structure: input and output folders
-
-\pagebreak
-
 ```{r packages, echo=T, include=FALSE}
 # setwd("~/.../create-maps")
+
+
 ### install packages
-# install.load::install_load("dplyr", "raster", "sf", "tidyverse", 
-#                             "maps", "terra", "ggspatial")
+install.load::install_load("dplyr", # check also pacman::
+                           "raster", 
+                           "terra", 
+                           "sf", 
+                           "ggspatial",
+                           "tidyverse")
+
+
 knitr::opts_chunk$set(warning = TRUE, # show warnings
                       message = TRUE, # show messages
                       error = TRUE, # do not interrupt generation in case of errors,
@@ -152,14 +153,18 @@ st_crs(swe_no_sweref)$proj4string
 b_box <- c(xmin = 350432, ymin = 7179284, 
            xmax = 857780, ymax =7444230)
 
-# Now intersect the full world's coastline with the bounding box 
+#' Select the area of interest:  
+#' intersect the full world's coastline with the bounding box 
 suppressWarnings({ 
 sweden.c <- st_crop(swe_no_sweref, b_box)
 plot(sweden.c)
 }) 
 
 class(sweden.c)
-### water data ----
+
+
+
+### Load vector data
 
 # import lakes
 lakes <-  input_vector %>%
@@ -167,7 +172,7 @@ lakes <-  input_vector %>%
   sf::st_read() %>%
   st_as_sf() 
 
-
+# info about the vector
 class(lakes)
 st_crs(lakes)
 
@@ -704,6 +709,7 @@ ggplot() +
 # More examples
 
 ## Multidimensional hillshade
+
 ```{r echo = FALSE}
 
 # Multidirectional shadows ----------
@@ -788,7 +794,7 @@ plot_map
 
 ## Example of creating multiplots ggplots and to save the maps
 
-```{r echo = FALSE, include =FALSE}
+```{r echo = FALSE, eval=FALSE}
 
 # Example using blending
 m <- ggplot() +
