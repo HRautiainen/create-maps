@@ -11,8 +11,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 # rm(list = ls(all = TRUE))
-# install.packages("pacman")
-# library(pacman)
+# (!require("pacman"))  install.packages("pacman")
 # pacman::p_unload(pacman::p_loaded(), character.only = TRUE)
 # pacman::p_loaded()
 
@@ -22,13 +21,15 @@ editor_options:
 # setwd("~/.../create-maps")
 
 
-### install packages
-install.load::install_load("dplyr", # check also pacman::
-                           "raster", 
-                           "terra", 
-                           "sf", 
-                           "ggspatial",
-                           "tidyverse")
+#### load packages and install missing packages #check also if (!require("pacman"))  install.packages("pacman");pacman::p_load(package1, package2, package_n)
+
+# install.load::install_load("dplyr", 
+#                            "raster", 
+#                            "ggplot2",
+#                            "terra", 
+#                            "sf", 
+#                            "ggspatial",
+#                            "tidyverse")
 
 
 knitr::opts_chunk$set(warning = TRUE, # show warnings
