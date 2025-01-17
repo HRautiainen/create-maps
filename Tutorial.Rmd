@@ -2,11 +2,11 @@
 title: "Creating maps in R - basics"
 author: "Heidi Rautiainen"
 date: "2024-12-20"
+output: pdf_document
+editor_options:
+  chunk_output_data_type: console
 output_data:
   pdf_document: default
-  html_document: default
-editor_options: 
-  chunk_output_data_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -14,6 +14,11 @@ editor_options:
 # (!require("pacman"))  install.packages("pacman")
 # pacman::p_unload(pacman::p_loaded(), character.only = TRUE)
 # pacman::p_loaded()
+# 
+# knitr::opts_chunk$set(warning = FALSE, # show warnings
+#                       message = TRUE, # show messages
+#                       error = FALSE, # do not interrupt generation in case of errors,
+#                       echo = TRUE)
 
 ```
 
@@ -29,13 +34,11 @@ editor_options:
 #                            "terra", 
 #                            "sf", 
 #                            "ggspatial",
-#                            "tidyverse")
+#                            "tidyverse",
+             # "ggnewscale",
+             # "tidyterra",
+             # "ggblend")
 
-
-knitr::opts_chunk$set(warning = TRUE, # show warnings
-                      message = TRUE, # show messages
-                      error = TRUE, # do not interrupt generation in case of errors,
-                      echo = TRUE)
 
 # Load packages
 pcks <- list("dplyr", 
@@ -43,7 +46,11 @@ pcks <- list("dplyr",
              "terra",     # used for raster data 
              "sf",        # used for handling sppatial data 
              "ggspatial", # spatial for ggplot2 
-             "tidyverse")
+             "tidyverse", 
+             "ggnewscale",
+             "tidyterra",
+             "ggblend")
+             
 
 sapply(pcks, require, char = TRUE) 
 
@@ -179,15 +186,14 @@ st_crs(lakes)
 
 # Transform or convert coordinates of simple feature (sf)
 lakes <- st_transform(lakes, crs = 3006) 
-suppressWarnings({ 
-  
+
 # crop an sf object to a specific rectangle (here based on extent of "sweden.c"-shp)
 # sf_use_s2(FALSE) # use if errors occur below
 lakes <- st_crop(lakes, sweden.c) 
 
 class(lakes)
 plot(lakes)
-}) 
+
 
 
 ```
@@ -285,6 +291,7 @@ ggsave("output_data/Fig1_study_area.png", width = 8, height = 6, dpi = 400)
 ```
 
 Optional: Create a polygon and add to map
+
 ```{r ignore, echo=F}
 #############################################################################
 ########      Optional: Create a polygon and add to map      ################
@@ -483,7 +490,7 @@ plot(elevation,
      main="Elevation")
 ```
 
-## Prepare hillshade background map
+## Prepare hillshade background map to make a terrain type background
 
 Calculate slope and aspect from elevation (dem)
 
@@ -530,13 +537,13 @@ plot(elevation,
      add=TRUE)
 ```
 
-## Plot and save all together
+## Plot and save all together (figure 2)
 
 ```{r echo=F}
 # png("output_data/Fig2_GPS_data.png", width = 30, height = 19, units = "cm", res = 400)
 par(mfrow=c(2,2), mar=c(0.1, 0.1, 3, 0.1))
 
-
+# plot A) Plot all individuls from group "Fed"
 plot(hillshade, 
      col=rev(over.col(50)), 
           axes=FALSE,
@@ -553,16 +560,10 @@ leg.txt <- c("Feeding group", "Control group")
 
 points(move_fed, pch = 19, cex = 0.5,
        col = fed_ids$group)
-
-
-# legend("topright", leg.txt, 
-#        # inset = .01,
-#        pch = 16, col = rev(1:2),
-#        cex = 1.5, trace = TRUE)#
 # dev.off()
 
 
-#availbility 
+# plot B) plot only the control individuals 
 plot(hillshade, 
      col=rev(over.col(50)), 
           axes=FALSE,
@@ -580,13 +581,16 @@ points(move_ctrl, pch = 19, cex = 0.5,
        col = ctrls$group)
 
 
-#random 
+# plot C) plot all ids 
 plot(hillshade, 
      col=rev(over.col(50)), 
           axes=FALSE,
      legend=FALSE)
-plot(elevation, col=adjustcolor(terrain.colors(100), 
-                             alpha=0.5), legend=FALSE,add=T)
+
+
+plot(elevation, 
+     col=adjustcolor(terrain.colors(100), 
+                     alpha=0.5), legend=FALSE,add=T)
      
 
 title(main="C Plot all individuals",
@@ -598,7 +602,7 @@ points(move, pch = 19, cex = 0.5,
        col = reindeer_data$group)
 
 
-# all 
+# plot D) all ids and home range polygon 
 
 plot(hillshade, 
      col=rev(over.col(50)), 
@@ -625,7 +629,7 @@ plot(HR_area,
 
 \pagebreak
 
-# Saving it as ggplot
+# Saving it as ggplot (figure 3)
 
 Some more packages required..
 
@@ -633,7 +637,6 @@ Credits to: <https://dominicroye.github.io/blog/hillshade-effect/index.html>
 
 ```{r echo = FALSE}
 ##```{r echo = FALSE, eval = FALSE}
-library(terra)
 library(ggnewscale)
 library(tidyterra)
 library(ggblend)
@@ -677,7 +680,7 @@ move_ctrl.sf <- st_as_sf(move_ctrl)
 
 # map simple hillshade --------------------
 
-ggplot() +
+fig3 <- ggplot() +
   geom_raster(
     data = hillshade.df,
     aes(x, y, fill = hillshade),
@@ -722,14 +725,27 @@ ggplot() +
   labs(title="Simple hillshade using ggplot2")+
   theme(plot.title = element_text(hjust = 0.5))
 
+
+plot(fig3)
+
+
+
+# ggsave("output_data/Fig3_simplehill_reindeerGPS",
+# fig3,
+# width = 8,
+# height = 6,
+# dpi=400,
+# bg = "white")
+
 ```
 
 \pagebreak
 
-# More examples
+# More examples 
 
-## Multidimensional hillshade
+For figure 4-6 (in output_data/). Not included in the tutorial, but available as examples. 
 
+## Multidimensional hillshade (figure 4)
 ```{r echo = FALSE}
 
 # Multidirectional shadows ----------
@@ -754,23 +770,22 @@ hillmulti <- rast(hillmulti) |> sum()
 
 par(mfrow = c(1,1))
 
-# multidirectional
-plot(hillmulti, 
-     col = grey(1:100 / 100), 
-     main="Multidirectional hillshade")
 
 hillshade.r <- rast(hillshade) # to spatrast to keep same format 
 plot(hillshade.r, 
      col = grey(1:100 / 100), 
           main="Simple hillshade")
 
-
+# multidirectional
+plot(hillmulti, 
+     col = grey(1:100 / 100), 
+     main="Multidirectional hillshade")
 
 # map multidirectional hillshade --------------------
 hillmulti.df <- as.data.frame(hillmulti, xy = TRUE)
 
 # map
-plot_map <- ggplot() +
+fig4 <- ggplot() +
   geom_raster(
     data = hillmulti.df,
     aes(x, y, fill = sum),
@@ -809,15 +824,24 @@ plot_map <- ggplot() +
     theme(plot.title = element_text(hjust = 0.5))
 
 
-plot_map
+plot(fig4)
+
+
+
+
+# ggsave("output_data/Fig4_multihillshade.png",
+#        fig4,
+#        width = 8,
+#        height = 6,
+#        dpi=400)
 ```
+\pagebreak
 
-## Example of creating multiplots ggplots and to save the maps
-
-```{r echo = FALSE, eval=FALSE}
+## Multidimensional hillshade with blending 
+```{r echo = FALSE}
 
 # Example using blending
-m <- ggplot() +
+fig5 <- ggplot() +
   list(
     geom_raster(
       data = hillmulti.df,
@@ -861,24 +885,27 @@ m <- ggplot() +
     # theme(plot.title = element_text(size = 20))
 
 
-ggsave("output_data/Fig3_hillshade_blend2.png", m,
-  width = 10,
-  height = 8,
-  unit = "in",
-  device = png,
-  type = "cairo",
-  bg = "white"
-)
 
-plot(m)
+# ggsave("output_data/Fig5_multihillshade_blended.png", fig5,
+# width = 8,
+# height = 6,
+#   unit = "in",
+#   device = png,
+#   type = "cairo",
+#   bg = "white"
+# )
+```
 
+
+## Example of creating multiplots ggplots and to save the maps (figure 6)
+```{r echo = FALSE}
 
 library(ggpubr)
 
 fig <-ggpubr::ggarrange(
 
 # Figure A
-gpubr::ggarrange(ggarrange(plot_map,
+ggpubr::ggarrange(ggpubr::ggarrange(fig3,
                       labels = c("A"),
                       # common.legend = TRUE, legend = "bottom",
                       legend = FALSE,
@@ -886,7 +913,7 @@ gpubr::ggarrange(ggarrange(plot_map,
                       vjust = 1.4),
 
 # Figure B
-         ggarrange(plot_map,
+         ggpubr::ggarrange(fig3,
                       labels = c("B"),
                       # common.legend = TRUE, legend = "bottom",
                       legend = FALSE,
@@ -897,7 +924,7 @@ gpubr::ggarrange(ggarrange(plot_map,
                 common.legend = TRUE),
 
 # Figure C
-  ggarrange(ggarrange(plot_map,
+  ggpubr::ggarrange(ggpubr::ggarrange(fig3,
                       labels = c("C"),
                       # common.legend = TRUE, legend = "bottom",
                       legend = FALSE,
@@ -905,7 +932,7 @@ gpubr::ggarrange(ggarrange(plot_map,
                       vjust = 1.4),
 
             # Figure D
-            ggarrange(plot_map,
+            ggpubr::ggarrange(fig3,
                       labels = c("D"),
                       # common.legend = TRUE, legend = "bottom",
                       legend = FALSE,
@@ -919,27 +946,26 @@ gpubr::ggarrange(ggarrange(plot_map,
   common.legend = TRUE)
 
 
-fig2 <- annotate_figure(fig,
+fig6 <- annotate_figure(fig,
                         fig.lab.pos = c("top.left"),
-                        top = text_grob("Figure 1", color = "Black", face = "bold", size = 22))
+                        top = text_grob("Figure 6", color = "Black", face = "bold", size = 22))
                               # top = text_grob("Visualizing len", color = "red", face = "bold", size = 14),
                               # bottom = text_grob("Data source: \n ToothGrowth data set", color = "blue",
                               #                    hjust = 1, x = 1, face = "italic", size = 10),
                               # left = text_grob("text", color = "black", size = 14, rot = 90, vjust = 1),
                               # bottom = text_grob("text", color = "black", size = 14))
 
+plot(fig6)
 
-# ggsave("output_data/GPS_data_ggplot.png",
-#        plot = fig2,
+# ggsave("output_data/Fig6_GPS_data_ggplot.png",
+#        plot = fig6,
 #        width = 8, height = 6,
 #          unit = "in",
 #   device = png,
 #   type = "cairo",
 #   bg = "white",
 #   dpi = 600)
-# 
-# ggsave("output_data/GPS_data_ggplot_example_multiplot.png", width = 8, height = 6, dpi = 400)
 
-# save.image(file = "Tutorial.RData")
+# save.image(file = "Tutorial.RData") # if you want to save the environment 
 
 ```
