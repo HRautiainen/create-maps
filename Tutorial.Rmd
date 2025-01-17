@@ -2,11 +2,11 @@
 title: "Creating maps in R - basics"
 author: "Heidi Rautiainen"
 date: "2024-12-20"
-output:
+output_data:
   pdf_document: default
   html_document: default
 editor_options: 
-  chunk_output_type: console
+  chunk_output_data_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -280,11 +280,11 @@ ggplot() +
 #       axis.title.y = element_blank()) + 
   # xlab("Longitude") + ylab("Latitude")   # add
 
-ggsave("output/study_area.png", width = 8, height = 6, dpi = 400)
+#save plot
+ggsave("output_data/Fig1_study_area.png", width = 8, height = 6, dpi = 400)
 ```
 
 Optional: Create a polygon and add to map
-
 ```{r ignore, echo=F}
 #############################################################################
 ########      Optional: Create a polygon and add to map      ################
@@ -327,7 +327,7 @@ Pre-define crs using ESPG-code or proj4string by:
 
 ```{r example maps}
 
-# projection to use as proj4string 
+# projection to use; here by using proj4string 
 crs_to_use <- "+proj=utm +zone=33 +ellps=GRS80 +units=m +no_defs" 
 
 ```
@@ -343,25 +343,28 @@ Another option: "terra"-package using rast()-function)
 # raster data ----
 maps_files_read
 
-
+# read all raster data
 maps <- raster::stack(maps_files_read)
 # maps <- crop(maps, extent(AOI)) #when cropping is needed (not needed here)
 
 
+#check names
 names(maps)
 
-
+# rename the maps for clarification
 names(maps) <- c("clear cuts", "elevation","distance to houses",
                  "lichen abundance", "land cover class", 
                  "distance to roads","slope", "terrain ruggedness index")
 
+
+# select the elevation map for the exercise
 elevation <- maps[[2]]
 sf::st_crs(elevation)$proj4string
 
 # Plot elevation
 plot(elevation,  main="Elevation")
 
-# vector for home range ------- 
+# read vector for home range ------- 
 HR_area <- input_vector %>% 
   grep(pattern = "spatial_files_availability_PV_winter_2021_shorter_modified_new.shp", 
        value = T) %>% 
@@ -370,7 +373,9 @@ HR_area <- input_vector %>%
   
   sf::st_transform(crs = crs_to_use) # set CRS
 
-sf::st_crs(HR_area)$proj4string
+sf::st_crs(HR_area)$proj4string # check CRS
+
+#plot reindeer home range polygon
 plot(HR_area[,1], 
      main="Home range")
 
@@ -384,19 +389,28 @@ Load prepared reindeer data
 
 ```{r echo=F}
 
+#read data and select columns in the data frame
 reindeer_data <- readRDS("input_data/vector/animal_data/reindeer_data.rds") %>%
    dplyr::select(Collar_ID,  id, year, x_, y_, t_, group) 
+
+head(reindeer_data) # check the data 
+str(reindeer_data) # i'd like to convert "chr" to factors (needed for grouping)
 
 # character to factor needed for grouping colors
 reindeer_data$group <- as.factor(reindeer_data$group) 
 
+# ....or for several columns using dplyr
+reindeer_data <- reindeer_data %>% 
+  dplyr::mutate(Collar_ID = as.factor(Collar_ID),  #gps collar
+         id = as.factor(id), #animal id 
+         group = as.factor(group))
 
 # group individuals 
 fed_ids <- reindeer_data %>% filter(group=="Fed")
 ctrls <- reindeer_data %>% filter(group=="Control")
 
 
-# create spatial points 
+# create spatial points and subset the groups 
 move <- SpatialPoints(reindeer_data[, c("x_", "y_")], 
                       proj4string = CRS("+proj=utm +zone=33 +ellps=WGS84 
                                         +datum=WGS84 +units=m +no_defs"))
@@ -408,13 +422,18 @@ move_fed <- SpatialPoints(fed_ids[, c("x_", "y_")],
 move_ctrl <- SpatialPoints(ctrls[, c("x_", "y_")], 
                       proj4string = CRS("+proj=utm +zone=33 +ellps=WGS84 
                                         +datum=WGS84 +units=m +no_defs"))
-
+str(move_ctrl)
+head(move_ctrl)
+class(move_ctrl)
 # coordinates(move)
 # proj4string(move)
 
+
+
+# example using mapview() 
 library(mapview)
 
-  mapid %>%
+move_ctrl %>%
   mapview()
   
   
@@ -514,7 +533,7 @@ plot(elevation,
 ## Plot and save all together
 
 ```{r echo=F}
-# png("output/GPS_data.png", width = 30, height = 19, units = "cm", res = 400)
+# png("output_data/Fig2_GPS_data.png", width = 30, height = 19, units = "cm", res = 400)
 par(mfrow=c(2,2), mar=c(0.1, 0.1, 3, 0.1))
 
 
@@ -842,7 +861,7 @@ m <- ggplot() +
     # theme(plot.title = element_text(size = 20))
 
 
-ggsave("output/hillshade_blend2.png", m,
+ggsave("output_data/Fig3_hillshade_blend2.png", m,
   width = 10,
   height = 8,
   unit = "in",
@@ -910,7 +929,7 @@ fig2 <- annotate_figure(fig,
                               # bottom = text_grob("text", color = "black", size = 14))
 
 
-# ggsave("output/GPS_data_ggplot.png",
+# ggsave("output_data/GPS_data_ggplot.png",
 #        plot = fig2,
 #        width = 8, height = 6,
 #          unit = "in",
@@ -919,7 +938,7 @@ fig2 <- annotate_figure(fig,
 #   bg = "white",
 #   dpi = 600)
 # 
-# ggsave("output/GPS_data_ggplot_example_multiplot.png", width = 8, height = 6, dpi = 400)
+# ggsave("output_data/GPS_data_ggplot_example_multiplot.png", width = 8, height = 6, dpi = 400)
 
 # save.image(file = "Tutorial.RData")
 

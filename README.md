@@ -4,7 +4,7 @@ GS-VMAS course, Data handling and illustrations
 ## Objectives
 * Become familiar with R packages for processing and simple visualization of vector and raster data 
 * Perform common data transformation operations
-* Create static maps (with ggplot2) and interactive maps (with mapview)
+* Create static maps (with ggplot2) 
 
 ## Contents
 * Explore vector and raster datasets
