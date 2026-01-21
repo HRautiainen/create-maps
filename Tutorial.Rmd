@@ -3,8 +3,8 @@ title: "Creating maps in R - basics"
 author: "Heidi Rautiainen"
 date: "2024-12-20, Updated: 2026-01-21" 
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 editor_options: 
   chunk_output_type: console
 ---
