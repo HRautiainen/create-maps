@@ -9,7 +9,7 @@
 .DS_Store
 input_data/.DS_Store
 input_data/vector/.DS_Store
-
+input_data/vector/animal_data/data_ready_rsf.rds
 
 # History files 
 .Rhistory
@@ -24,15 +24,19 @@ plot2.png
 plot3.png
 
 
-# misc
-misc/pres_files/*
-misc/presentation_files
-misc/*~
-misc/
-
 # presentations
 figs for presentation.R
 
 
-#output data
+#input data
+input_data/ignore
+output_data/ignore/
+
+
+# folders
+misc/
+Tutorial_files/
+tmp-
+
+
 
