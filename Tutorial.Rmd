@@ -69,7 +69,9 @@ maps_files_read <- list.files(spatial_folder,
                           full.names = T,
                           recursive = T)
 
-maps_files_read
+# maps_files_read <- maps_files_read[!grepl("ignore", maps_files_read)]
+
+
 ```
 
 # Exercise 1: Create study area map using "ggplot"
@@ -288,7 +290,7 @@ ggplot() +
 #       axis.title.y = element_blank()) + 
   # xlab("Longitude") + ylab("Latitude")   # add
 
-ggsave("output_data/study_area.png", 
+ggsave("output_data/Fig1_study_area.png", 
        width = 8, 
        height = 6, 
        dpi = 400)
@@ -477,11 +479,7 @@ maps <- raster::stack(maps_files_read)
 names(maps)
 
 
-names(maps) <- c("clear cuts", "elevation","distance to houses",
-                 "lichen abundance", "land cover class", 
-                 "distance to roads","slope", "terrain ruggedness index")
-
-elevation <- maps[[2]]
+elevation <- maps[["PV_2021_dem"]]
 sf::st_crs(elevation)$proj4string #known CRS, no transformation 
 
 # Plot elevation
@@ -596,7 +594,7 @@ plot(elevation,
 ## Plot and save all together
 
 ```{r echo=F}
-# png("output/GPS_data.png", width = 30, height = 19, units = "cm", res = 400)
+#png("output_data/Fig2_GPS_data.png", width = 30, height = 19, units = "cm", res = 400)
 par(mfrow=c(2,2), mar=c(0.1, 0.1, 3, 0.1))
 
 
@@ -665,6 +663,146 @@ points(move, pch = 19, cex = 0.5,
 
 plot(elevation, col=adjustcolor(terrain.colors(100), 
                              alpha=0.5), legend=FALSE)
+     
+
+title(main="D Plot home range",
+      line = 0.5,
+      cex.main=1.6,     
+      adj = 0)
+points(move, pch = 19, cex = 0.5, 
+       col = reindeer_data$group)
+
+plot(HR_area,   
+     col = NA,
+     border = 1,add=T)
+
+# dev.off()
+
+```
+
+# Some optional adjustments: hillshade instead of elevation
+
+## Prepare hillshade background map
+Calculate slope and aspect from elevation (dem)
+```{r echo=F}
+
+par(mfrow = c(2,2))
+
+# Create Hill shade
+slope <- terra::terrain(elevation, 
+                        "slope", 
+                        unit='radians')
+
+plot(slope,
+          main="Slope")
+
+
+
+aspect <- terra::terrain(elevation, 
+                         "aspect", 
+                         unit='radians')
+
+plot(aspect, 
+     main="Aspect")
+
+
+hillshade <- hillShade(slope, #shade() for spatRaster
+              aspect, 
+              angle=45, 
+              direction=300,   
+              normalize = TRUE)
+
+plot(hillshade,
+               main="Hillshade")
+
+
+
+# Plot hill shade and overlay DEM
+plot(hillshade, col=rev(over.col(50)), legend=FALSE, 
+                    main="Hillshade and overlay DEM")
+plot(elevation, 
+     col=adjustcolor(terrain.colors(100), 
+                             alpha=0.75),      
+     legend=FALSE, 
+     add=TRUE)
+```
+
+## Plot and save all together
+
+```{r echo=F}
+#png("output_data/Fig3_GPS_data_hillshade.png", width = 30, height = 19, units = "cm", res = 400)
+par(mfrow=c(2,2), mar=c(0.1, 0.1, 3, 0.1))
+
+
+plot(hillshade, 
+     col=rev(over.col(50)), 
+          axes=FALSE,
+         legend=FALSE)
+plot(elevation, col=adjustcolor(terrain.colors(100), 
+                             alpha=0.5), legend=FALSE, add=T)
+     
+     
+title(main="A Plot fed inviduals",
+      line = 0.5,
+      cex.main=1.6,     
+      adj = 0)
+leg.txt <- c("Feeding group", "Control group")
+
+points(move_fed, pch = 19, cex = 0.5,
+       col = fed_ids$group)
+
+
+# legend("topright", leg.txt, 
+#        # inset = .01,
+#        pch = 16, col = rev(1:2),
+#        cex = 1.5, trace = TRUE)#
+# dev.off()
+
+
+#availbility 
+plot(hillshade, 
+     col=rev(over.col(50)), 
+          axes=FALSE,
+     legend=FALSE)
+plot(elevation, col=adjustcolor(terrain.colors(100), 
+                             alpha=0.5), legend=FALSE, add=T)
+     
+
+title(main="B Plot control individuals",
+      line = 0.5,
+      cex.main=1.6,     
+      
+      adj = 0)
+points(move_ctrl, pch = 19, cex = 0.5, 
+       col = ctrls$group)
+
+
+#random 
+plot(hillshade, 
+     col=rev(over.col(50)), 
+          axes=FALSE,
+     legend=FALSE)
+plot(elevation, col=adjustcolor(terrain.colors(100), 
+                             alpha=0.5), legend=FALSE,add=T)
+     
+
+title(main="C Plot all individuals",
+      line = 0.5,
+      cex.main=1.6,     
+      adj = 0)
+
+points(move, pch = 19, cex = 0.5, 
+       col = reindeer_data$group)
+
+
+# all 
+
+plot(hillshade, 
+     col=rev(over.col(50)), 
+          axes=FALSE,
+     legend=FALSE)
+plot(elevation, col=adjustcolor(terrain.colors(100), 
+                             alpha=0.5), legend=FALSE, add=T)
      
 
 title(main="D Plot home range",
