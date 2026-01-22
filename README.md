@@ -34,6 +34,7 @@ install.load::install_load("dplyr",
                            "terra",
                            "sf",
                            "ggspatial",
+                           "mapview",
                            "tidyverse")
 
 
@@ -42,7 +43,8 @@ pcks <- list("dplyr",
              "raster", # used for raster data        
              "terra",  # used for raster data         
              "sf",     # used for handling spatial vector data         
-             "ggspatial",        
+             "ggspatial",
+             "mapview",
              "tidyverse")
 
 sapply(pcks, require, char = TRUE) 
