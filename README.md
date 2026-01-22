@@ -4,17 +4,19 @@ GS-VMAS course, Data handling and illustrations
 ## Objectives
 * Become familiar with R packages for processing and simple visualization of vector and raster data 
 * Perform common data transformation operations
-* Create static maps (with ggplot2) 
+* Create static maps (with ggplot2)
+* Become familiar with interactive maps 
 
 ## Contents
 * Explore vector and raster datasets
 * Reference systems and transformations
-* Customize maps (ggplot2)
-* Save your map 
+* Customize maps (ggplot2) 
+* Save your map
+* Examples interactive maps (mapview) 
 
 ### Data used for demo
-* Downloaded using "geodata"- and "rnaturalearth"-packages (exercise 1)
-* "create-maps/input_data" from lantmäteriet (exercise 2)
+* "create-maps/input_data" using "geodata"- and "rnaturalearth"-packages (exercise 1)
+* "create-maps/input_data" from lantmäteriet (optional: exercise 3)
 
 ### Data availability
 * using "rnaturalearth"-package. The "geodata"-package also provide open access data: GADM (https://gadm.org) country boarders, landcover data from  ESA WorldCover etc. 
