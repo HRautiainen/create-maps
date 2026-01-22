@@ -18,8 +18,10 @@ plot3.png
 
 
 # misc
+misc/pres_files
+misc/presentation_files
+misc/*~
 misc/
-
 
 # presentations
 figs for presentation.R
