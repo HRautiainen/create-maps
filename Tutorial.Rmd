@@ -3,8 +3,8 @@ title: "Creating maps in R - basics"
 author: "Heidi Rautiainen"
 date: "2024-12-20, Updated: 2026-01-21" 
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 editor_options: 
   chunk_output_type: console
 ---
@@ -18,11 +18,20 @@ editor_options:
 
 ```
 
+
+
+# Set up directory, install packages and load packages 
 ```{r packages, echo=T, include=FALSE}
-# setwd("~/.../create-maps")
+
+### Set directory from github -----
+# setwd("~/.../create-maps-main")
+
+
+
+
 ### install packages
 # install.load::install_load("dplyr", "raster", "sf", "tidyverse", 
-#                             "maps", "terra", "ggspatial")
+#                             "maps", "terra", "ggspatial", "mapview")
 knitr::opts_chunk$set(warning = TRUE, # show warnings
                       message = TRUE, # show messages
                       error = TRUE, # do not interrupt generation in case of errors,
@@ -30,10 +39,11 @@ knitr::opts_chunk$set(warning = TRUE, # show warnings
 
 # Load packages
 pcks <- list("dplyr", 
-             "raster",    # used for raster data
-             "terra",     # used for raster data 
-             "sf",        # used for handling sppatial data 
+             "sf",        # used for handling spatial data 
              "ggspatial", # spatial for ggplot2 
+             "raster",    # used for raster data 
+             "terra",     # used for raster data
+             "mapview",   # interactive maps 
              "tidyverse")
 
 sapply(pcks, require, char = TRUE) 
@@ -49,13 +59,16 @@ input_vector <- list.files(spatial_folder,
                           full.names = T,
                           recursive = T)
 
+input_vector
+
+
 # data to read: raster data 
 maps_files_read <- list.files(spatial_folder,
                           pattern = ".tif",
                           full.names = T,
                           recursive = T)
 
-
+maps_files_read
 ```
 
 # Exercise 1: Create study area map using "ggplot"
@@ -85,7 +98,6 @@ More reading:\
 ## Load vector data
 
 How to download using "rnaturalearth" and save the shp locally
-
 ```{r echo=F, include=FALSE}
 
 # Download using 'rnaturalearth' package, or download from git -----------------
@@ -119,7 +131,6 @@ How to download using "rnaturalearth" and save the shp locally
 ```
 
 I will open the saved .shp for the exercise:
-
 ```{r echo=T}
 
 ## load country boarders -----------
@@ -141,6 +152,8 @@ swe_no_sweref <-  input_vector %>%
 # check coordinate system 
 st_crs(swe_no_sweref)$proj4string
 
+
+
 # Create a bounding box as an sf object for layers ----
 b_box <- c(xmin = 350432, ymin = 7179284, 
            xmax = 857780, ymax =7444230)
@@ -152,7 +165,9 @@ plot(sweden.c)
 }) 
 
 class(sweden.c)
+
 ### water data ----
+input_vector
 
 # import lakes
 lakes <-  input_vector %>%
@@ -179,7 +194,7 @@ plot(lakes)
 
 ```
 
-### Add points of interest (cities)
+### Create points of interest (cities)
 
 Create xy points with labels. Here creating sf-object and setting the crs.
 
@@ -189,10 +204,12 @@ Create xy points with labels. Here creating sf-object and setting the crs.
 places <- data.frame(ID= c("Arjeplog", "Arvidsjaur", "Sorsele"),
                      y = c(7328407.945, 7280856.153, 7270326.684),
                      x = c(630040.101, 693262.414, 617477.638)) %>%
+  
   st_as_sf(coords = c("x", "y"),  # create sf object 
+           
            crs=st_crs(sweden.c))  # set same crs as for sweden.c     
 class(places)
-# st_crs(places) # check projection 
+ st_crs(places) # check projection 
 
 ```
 
@@ -201,6 +218,9 @@ class(places)
 ```{r}
 
 library(ggspatial)
+plot(sweden.c)
+plot(lakes)
+plot(places)
 
 ggplot() +
   
@@ -274,7 +294,6 @@ ggsave("output_data/study_area.png",
 ```
 
 Optional: Create a polygon and add to map
-
 ```{r ignore, echo=F}
 #############################################################################
 ########      Optional: Create a polygon and add to map      ################
@@ -305,31 +324,73 @@ Optional: Create a polygon and add to map
 #              color="red") +
 ```
 
-# Exercise 2 interactive maps 
+# Example 2 interactive maps using mapview
 ```{r example interactive maps}
 
+
+# some gps data from reindeer 
 reindeer_data <- readRDS("input_data/vector/animal_data/reindeer_data.rds") %>%
    dplyr::select(Collar_ID,  id, year, x_, y_, t_, group) 
 
 str(reindeer_data)
 
+### basic usage ===========================================================
+
+### most basic call
+mapview()
+
+### with some data
+mapview(reindeer_data) 
+str(reindeer_data)
+
+# convert to sf 
+reindeer_data_sf <- reindeer_data %>%
+  st_as_sf(coords = c("x_", "y_"), #data frame to sf 
+           crs=3006)              # assign to known crs 
+
+
+
+plot(reindeer_data_sf)
+mapview(reindeer_data_sf) 
+
+# mapview structure
+m <- mapview(reindeer_data_sf) 
+m
+str(m, 3) # two slots = object (points) and map (geometries)
+m@object
+class(m@map)
+
+
+
+# mapview
+mapview(swe_no_sweref) # polygons
+
+
+
+
 # character to factor needed for grouping colors
 reindeer_data$group <- as.factor(reindeer_data$group) 
 unique(reindeer_data$Collar_ID)
 library(mapview)
+
 mapid <- reindeer_data %>%
    filter(Collar_ID =="FIT_421952" | Collar_ID =="FIT_421943"| Collar_ID =="FIT_421941")  %>%
   st_as_sf(coords = c("x_", "y_"), crs=3006)
+str(mapid)
 
+### Add home range 
 AOI <- grep("modified_new.shp", input_vector, value = T) %>%
   sf::read_sf() %>%
   sf::st_transform(crs = 3006)
+plot(AOI)
+
 
 pal <-  mapviewPalette("mapviewVectorColors") # optional: mapviewTopoColors, mapviewRasterColors, mapviewVectorColors, mapviewSpectralColors
+
 mapid %>%
   mapview(zcol="Collar_ID", 
           cex = "Collar_ID", 
-          col.regions = pal(3)) + 
+          col.regions = pal(3))+
   mapview(
     AOI,
     alpha.regions = 0,   # no fill
@@ -338,15 +399,23 @@ mapid %>%
   ) # or simply add + AOI 
   
 
-### Some more examples....
+
+
+### view extents
+viewExtent(mapid)
+mapview(st_bbox(mapid))
+viewExtent(mapid) + mapview(mapid, zcol = "Collar_ID")
 
 
 
+#### show tracks
 mapid2 <- reindeer_data %>%
   filter(Collar_ID %in% c("FIT_421952","FIT_421943","FIT_421941")) %>%
   mutate(t_ = as.POSIXct(t_, format = "%Y-%m-%d %H:%M:%S", tz = "UTC")) %>%
   arrange(Collar_ID, t_) %>%
   st_as_sf(coords = c("x_", "y_"), crs = 3006)
+str(mapid2)
+
 
 tracks <- mapid2 %>%
   group_by(Collar_ID) %>%
@@ -359,6 +428,16 @@ mapview(tracks,
         lwd = 3, 
         layer.name = "Tracks") +
   mapview(mapid, zcol = "Collar_ID", cex = 3, layer.name = "Fixes") 
+
+
+
+
+### basemaps
+library(leaflet)
+# To specify which background map you would like to use
+mapview(gadmCHE, map.types = c("Stamen.Toner", "NASAGIBS.ViirsEarthAtNight2012"))
+# see https://leaflet-extras.github.io/leaflet-providers/preview/ for more options -- to see which background maps that leaflet provides! 
+
 
 
 ```
@@ -403,7 +482,7 @@ names(maps) <- c("clear cuts", "elevation","distance to houses",
                  "distance to roads","slope", "terrain ruggedness index")
 
 elevation <- maps[[2]]
-sf::st_crs(elevation)$proj4string
+sf::st_crs(elevation)$proj4string #known CRS, no transformation 
 
 # Plot elevation
 plot(elevation,  main="Elevation")

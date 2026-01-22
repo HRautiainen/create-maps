@@ -1,13 +1,18 @@
 .Rproj.user
 .Rhistory
+# Session Data files
 .RData
+
+# User-specific files
 .Ruserdata
+
 .DS_Store
 input_data/.DS_Store
 input_data/vector/.DS_Store
 
 
 # History files 
+.Rhistory
 
 
 # plots
@@ -20,7 +25,7 @@ plot3.png
 
 
 # misc
-misc/pres_files
+misc/pres_files/*
 misc/presentation_files
 misc/*~
 misc/
