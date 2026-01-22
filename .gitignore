@@ -2,3 +2,24 @@
 .Rhistory
 .RData
 .Ruserdata
+
+
+
+# History files 
+
+
+# plots
+plot0.png
+plot1.png
+plot1B.png
+plot2B.png
+plot2.png
+plot3.png
+
+
+# misc
+misc/
+
+
+#
+figs for presentation.R
