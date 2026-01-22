@@ -3,8 +3,8 @@ title: "Creating maps in R - basics"
 author: "Heidi Rautiainen"
 date: "2024-12-20, Updated: 2026-01-21" 
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 editor_options: 
   chunk_output_type: console
 ---
@@ -15,6 +15,7 @@ editor_options:
 # library(pacman)
 # pacman::p_unload(pacman::p_loaded(), character.only = TRUE)
 # pacman::p_loaded()
+
 
 ```
 
@@ -340,7 +341,7 @@ str(reindeer_data)
 mapview()
 
 ### with some data
-mapview(reindeer_data) 
+# mapview(reindeer_data) 
 str(reindeer_data)
 
 # convert to sf 
@@ -363,8 +364,7 @@ class(m@map)
 
 
 # mapview
-mapview(swe_no_sweref) # polygons
-
+mapview(sweden.c) # polygons
 
 
 
