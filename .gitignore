@@ -3,7 +3,9 @@
 .RData
 .Ruserdata
 .DS_Store
-*/.DS_Store
+input_data/.DS_Store
+input_data/vector/.DS_Store
+
 
 # History files 
 
