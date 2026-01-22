@@ -25,6 +25,7 @@ GS-VMAS course, Data handling and illustrations
 # set up
 
 #### install and load packages
+
 ```{r packages, echo=T, include=FALSE}
 
 #### load; install missing packages
@@ -45,4 +46,12 @@ pcks <- list("dplyr",
              "sf",     # used for handling spatial vector data         
              "ggspatial",
              "mapview",
-             "tid
+             "tidyverse")
+
+sapply(pcks, require, char = TRUE) 
+
+```
+
+
+
+
