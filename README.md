@@ -45,11 +45,4 @@ pcks <- list("dplyr",
              "sf",     # used for handling spatial vector data         
              "ggspatial",
              "mapview",
-             "tidyverse")
-
-sapply(pcks, require, char = TRUE) 
-
-```
-
-
-
+             "tid
